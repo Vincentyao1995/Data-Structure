@@ -33,6 +33,8 @@ def load_data(type = 'sulfuro'):
     sp.open_image(filePath + fileName)
 
 # input auto_set, default 1 and set the ABPs (absorption bands) are set mannually
+# type controls the ABP bands' difference between sulf and oxi. (tho no differences now.)
+# sp is a spectrum.
 def choose_ABP_bands(sp, auto_set = 1, type = 'sulfuro'):
     if auto_set == 1:
         
@@ -154,6 +156,14 @@ def cal_SP_paras(ABP_bands_SP):
 
     return para_dict
 
+
+def SP_paras(SP_array, type = 'sulfuro'):
+
+	ABP_bands = choose_ABP_bands(SP_array, type = type)
+	para_dict = cal_SP_paras(ABP_bands)
+	return para_dict()
+	
+	
 if __name__ == '__main__':
     
     # 1. load sp data from img.
