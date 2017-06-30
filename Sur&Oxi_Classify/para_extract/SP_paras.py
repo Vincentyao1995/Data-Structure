@@ -8,7 +8,10 @@ from glob import glob
 #check the data. And got acc txt file.
 #attention, input testing and training data should separate from check(), check() receives training data(2 main list or array)  you realize single_ref check and all_ref check by your self in experiment file. 
 
-def check(SP_ref_oxido, SP_ref_sulfuro, check_all = 0, use_SP_paras = 0):
+def dataProcess_alg_pass(SP):
+    return SP
+
+def check(SP_ref_oxido, SP_ref_sulfuro, check_all = 0, dataProcess_alg = dataProcess_alg_pass):
     
     filePath = 'data/'
     files_list_oxi = glob(filePath + 'oxidos/'+"*.hdr")
@@ -21,27 +24,27 @@ def check(SP_ref_oxido, SP_ref_sulfuro, check_all = 0, use_SP_paras = 0):
     acc_dict_sul = {}
     
     #check all the oxidos.
-    #for i in range(num_oxi):
+    for i in range(num_oxi):
     
-    #    index0 = files_list_oxi[i].split('Esc')[-1].split('Ox')[-1][0:2]
-    #    # u could also achieve this by : 
-    #    #
-    #        # if i < 10:
-    #            # i = str('0' + str(i))
-    #        # else:
-    #            # i = str(i)
-    #    img_testing = exp2.input_testing_data(index = index0, type = 'oxido', check_all = check_all)
+        index0 = files_list_oxi[i].split('Esc')[-1].split('Ox')[-1][0:2]
+        # u could also achieve this by : 
+        #
+            # if i < 10:
+                # i = str('0' + str(i))
+            # else:
+                # i = str(i)
+        img_testing = exp2.input_testing_data(index = index0, type = 'oxido', check_all = check_all)
 
-    #    #core alg of check
-    #    # ////////SP_ref_oxido, SP_ref_sulfuro = input_training_data(use_multi_SP_as_reference = 1)
-    #    res, accurarcy = exp2.Tranversing(SP_ref_oxido, SP_ref_sulfuro, img_testing, testingType = 1, use_SP_paras = use_SP_paras)
-    #    acc_dict_oxi.setdefault(str(img_testing).split('/')[2].split('_')[0] + '_res.bmp',[])
-    #    acc_dict_oxi[str(img_testing).split('/')[2].split('_')[0] + '_res.bmp'].append(accurarcy)
+        #core alg of check
+        # ////////SP_ref_oxido, SP_ref_sulfuro = input_training_data(use_multi_SP_as_reference = 1)
+        res, accurarcy = exp2.Tranversing(SP_ref_oxido, SP_ref_sulfuro, img_testing, testingType = 'oxido', dataProcess_alg = dataProcess_alg)
+        acc_dict_oxi.setdefault(str(img_testing).split('/')[2].split('_')[0] + '_res.bmp',[])
+        acc_dict_oxi[str(img_testing).split('/')[2].split('_')[0] + '_res.bmp'].append(accurarcy)
 
-    #    #showing the progress
+        #showing the progress
         
-    #    acc_key = str(img_testing).split('/')[2].split('_')[0] + '_res.bmp'
-    #    print('%s   %f   \n' % (acc_key, acc_dict_oxi[acc_key][0] ))
+        acc_key = str(img_testing).split('/')[2].split('_')[0] + '_res.bmp'
+        print('%s   %f   \n' % (acc_key, acc_dict_oxi[acc_key][0] ))
 
 
     #check all the sulfuros  
@@ -52,7 +55,7 @@ def check(SP_ref_oxido, SP_ref_sulfuro, check_all = 0, use_SP_paras = 0):
         
         #core alg of check
         # /////SP_ref_oxido, SP_ref_sulfuro = input_training_data(use_multi_SP_as_reference = 0)
-        res, accurarcy = exp2.Tranversing(SP_ref_oxido, SP_ref_sulfuro, img_testing,  testingType = 2, use_SP_paras = use_SP_paras)
+        res, accurarcy = exp2.Tranversing(SP_ref_oxido, SP_ref_sulfuro, img_testing,  testingType = 'sulfuro', dataProcess_alg = dataProcess_alg)
         acc_dict_sul.setdefault(str(img_testing).split('/')[2].split('_')[0] + '_res.bmp',[])
         acc_dict_sul[str(img_testing).split('/')[2].split('_')[0] + '_res.bmp'].append(accurarcy)
 
@@ -63,7 +66,7 @@ def check(SP_ref_oxido, SP_ref_sulfuro, check_all = 0, use_SP_paras = 0):
         print('%s   %f   \n' % (acc_key, acc_dict_sul[acc_key][0] ))
 
     #write the results into txt
-    file_res = open(filePath + 'paras_accuracy_result.txt', 'w')
+    file_res = open(filePath + 'paras_accuracy_result_paraDiscarded.txt', 'w')
     file_res.write('fileName \t \t Accuracy\n')
     for i in acc_dict_oxi.keys():
         file_res.write("%s \t %f\n" % (i,acc_dict_oxi[i][0]))
@@ -77,8 +80,8 @@ def check(SP_ref_oxido, SP_ref_sulfuro, check_all = 0, use_SP_paras = 0):
 def dict_to_list(para_dict):
     
     para_list = []
-    for i in para_dict :
-        for j in para_dict[i]:
+    for i in para_dict.keys() :
+        for j in para_dict[i].keys():
             para_list.append(para_dict[i][j])
             
     return para_list
@@ -100,6 +103,7 @@ def normalize(arr1,arr2, arr3):
         arr1[i] = ( arr1[i] - min_value ) / (max_value - min_value)
         arr2[i] = ( arr2[i] - min_value ) / (max_value - min_value)
         arr3[i] = ( arr3[i] - min_value ) / (max_value - min_value)
+
     return [arr1, arr2, arr3]
             
 #load average sulfuros data, return a spectrum array. 

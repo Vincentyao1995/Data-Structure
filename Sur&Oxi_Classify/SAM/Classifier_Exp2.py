@@ -189,10 +189,19 @@ def cal_SP_angle(SP_reference, SP_testing, deepth):
         exit(0)
     return angle
     
+def dataProcess_alg_pass(SP):
+    return SP
+
 #tranversing the whole testing img and cal each pixel, then classify it. return [res, accurarcy], the first record the classification info and the later saves accurarcy
 # input two ref img, testing img and testing type (Default 1 is testing Oxido, 2 is testing Sul)
-def Tranversing(SP_reference1, SP_reference2, img_testing, testingType = 1, use_SP_paras = 0):
+def Tranversing(SP_reference1, SP_reference2, img_testing, testingType = 'oxido', dataProcess_alg = dataProcess_alg_pass):
     
+    if testingType == 'oxido':
+        testingType = 1
+    elif testingType == 'sulfuro':
+        testingType = 2
+
+
     width, height, deepth = img_testing.shape
     deepth = len(SP_reference1)
     #res is a list that would save the classification result, 2 is background, 1 is right, 0 is wrong. 
@@ -210,13 +219,8 @@ def Tranversing(SP_reference1, SP_reference2, img_testing, testingType = 1, use_
                 count_bg += 1
                 continue
             
-            if use_SP_paras == 1:
-                # if you extract paras from SP and use this paras to classify.
-                import SP_paras
-                para_testing_dict = SP_paras.SP_paras(SP_testing)
-                para_testing_list = SP_paras.dict_to_list(para_testing_dict)
-                SP_testing = para_testing_list
-                SP_reference1, SP_reference2, para_testing_list = SP_paras.normalize(SP_reference1, SP_reference2, para_testing_list)
+            # pre-algorithm process data.
+            SP_testing = dataProcess_alg(SP_testing)
 
             # compute spectrum angles.
             angle_ref1 = cal_SP_angle(SP_reference1, SP_testing, deepth)
