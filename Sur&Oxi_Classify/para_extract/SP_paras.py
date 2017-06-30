@@ -1,78 +1,101 @@
 ﻿import spectral as sp
 import os
-import Classifier_Exp2 as exp2
+import test_algorithm as ta
 import numpy as np
 import math
 from glob import glob
 
+#define switch
+testOxi = 1
+
 #check the data. And got acc txt file.
-#attention, input testing and training data should separate from check(), check() receives training data(2 main list or array)  you realize single_ref check and all_ref check by your self in experiment file. 
 
 def dataProcess_alg_pass(SP):
     return SP
 
+# useless, rewriten in test_algorithm
 def check(SP_ref_oxido, SP_ref_sulfuro, check_all = 0, dataProcess_alg = dataProcess_alg_pass):
+    if check_all == 1:    
+        filePath = 'data/'
+        files_list_oxi = glob(filePath + 'oxidos/'+"*.hdr")
+        files_list_sul = glob(filePath + 'sulfuros/'+'*.hdr')
+        num_oxi = len(files_list_oxi)
+        num_sul = len(files_list_sul)
     
-    filePath = 'data/'
-    files_list_oxi = glob(filePath + 'oxidos/'+"*.hdr")
-    files_list_sul = glob(filePath + 'sulfuros/'+'*.hdr')
-    num_oxi = len(files_list_oxi)
-    num_sul = len(files_list_sul)
+        #accuracy dict, the index is testing files' name and values is a list [single_SP, all_SP]
+        acc_dict_oxi = {}
+        acc_dict_sul = {}
     
-    #accuracy dict, the index is testing files' name and values is a list [single_SP, all_SP]
-    acc_dict_oxi = {}
-    acc_dict_sul = {}
+        #switch
+        global testOxi
+        #check all the oxidos.
+        for i in range(num_oxi):
+            if testOxi == 0:
+                break 
+            index0 = files_list_oxi[i].split('Esc')[-1].split('Ox')[-1][0:2]
+            # u could also achieve this by : 
+            #
+                # if i < 10:
+                    # i = str('0' + str(i))
+                # else:
+                    # i = str(i)
+            img_testing = ta.input_testing_data(index = index0, type = 'oxido', check_all = check_all)
+
+            #core alg of check
+            # ////////SP_ref_oxido, SP_ref_sulfuro = input_training_data(use_multi_SP_as_reference = 1)
+            res, accurarcy = ta.Tranversing(SP_ref_oxido, SP_ref_sulfuro, img_testing, testingType = 'oxido', dataProcess_alg = dataProcess_alg)
+            acc_dict_oxi.setdefault(str(img_testing).split('/')[2].split('_')[0] + '_res.bmp',[])
+            acc_dict_oxi[str(img_testing).split('/')[2].split('_')[0] + '_res.bmp'].append(accurarcy)
+
+            #showing the progress
+        
+            acc_key = str(img_testing).split('/')[2].split('_')[0] + '_res.bmp'
+            print('%s   %f   \n' % (acc_key, acc_dict_oxi[acc_key][0] ))
+
+
+        #check all the sulfuros  
+        for i in range(num_sul):
+        
+            index0 = files_list_sul[i].split('Esc')[-1].split('Sulf')[-1][0:2] # after split('Esc'), u got a list containing only one element.... x[0] == x[-1]
+            img_testing = ta.input_testing_data(index = index0, type = 'sulfuro', check_all = check_all)
+        
+            #core alg of check
+            # /////SP_ref_oxido, SP_ref_sulfuro = input_training_data(use_multi_SP_as_reference = 0)
+            res, accurarcy = ta.Tranversing(SP_ref_oxido, SP_ref_sulfuro, img_testing,  testingType = 'sulfuro', dataProcess_alg = dataProcess_alg)
+            acc_dict_sul.setdefault(str(img_testing).split('/')[2].split('_')[0] + '_res.bmp',[])
+            acc_dict_sul[str(img_testing).split('/')[2].split('_')[0] + '_res.bmp'].append(accurarcy)
+
+        
+
+            #showing the progress
+            acc_key = str(img_testing).split('/')[2].split('_')[0] + '_res.bmp'
+            print('%s   %f   \n' % (acc_key, acc_dict_sul[acc_key][0] ))
+
+        #write the results into txt
+        file_res = open(filePath + '3paras_accuracy_non_normalized.txt', 'w')
+        file_res.write('fileName \t \t Accuracy\n')
+        for i in acc_dict_oxi.keys():
+            file_res.write("%s \t %f\n" % (i,acc_dict_oxi[i][0]))
+        for i in acc_dict_sul.keys():
+            file_res.write("%s \t %f\n" % (i,acc_dict_sul[i][0]))
+    elif check_all == 0:
     
-    #check all the oxidos.
-    for i in range(num_oxi):
+        #input testing data
+        img_testing = input_testing_data()
     
-        index0 = files_list_oxi[i].split('Esc')[-1].split('Ox')[-1][0:2]
-        # u could also achieve this by : 
-        #
-            # if i < 10:
-                # i = str('0' + str(i))
-            # else:
-                # i = str(i)
-        img_testing = exp2.input_testing_data(index = index0, type = 'oxido', check_all = check_all)
-
-        #core alg of check
-        # ////////SP_ref_oxido, SP_ref_sulfuro = input_training_data(use_multi_SP_as_reference = 1)
-        res, accurarcy = exp2.Tranversing(SP_ref_oxido, SP_ref_sulfuro, img_testing, testingType = 'oxido', dataProcess_alg = dataProcess_alg)
-        acc_dict_oxi.setdefault(str(img_testing).split('/')[2].split('_')[0] + '_res.bmp',[])
-        acc_dict_oxi[str(img_testing).split('/')[2].split('_')[0] + '_res.bmp'].append(accurarcy)
-
-        #showing the progress
+        # tranversing the img and cal spectral angle between testImg and refImg. 
+        #Input: testing img and reference img.
+        if 'Sulf' in str(img_testing): 
+            res, accurarcy = Tranversing(SP_ref_oxido,SP_ref_sulfuro, img_testing, 2)
         
-        acc_key = str(img_testing).split('/')[2].split('_')[0] + '_res.bmp'
-        print('%s   %f   \n' % (acc_key, acc_dict_oxi[acc_key][0] ))
+        else:
+            res, accurarcy = Tranversing(SP_ref_oxido,SP_ref_sulfuro, img_testing, 1)
 
-
-    #check all the sulfuros  
-    for i in range(num_sul):
-        
-        index0 = files_list_sul[i].split('Esc')[-1].split('Sulf')[-1][0:2] # attention: debug err? after split('Esc'), u got a list containing only one element.... x[0] == x[-1]
-        img_testing = exp2.input_testing_data(index = index0, type = 'sulfuro', check_all = check_all)
-        
-        #core alg of check
-        # /////SP_ref_oxido, SP_ref_sulfuro = input_training_data(use_multi_SP_as_reference = 0)
-        res, accurarcy = exp2.Tranversing(SP_ref_oxido, SP_ref_sulfuro, img_testing,  testingType = 'sulfuro', dataProcess_alg = dataProcess_alg)
-        acc_dict_sul.setdefault(str(img_testing).split('/')[2].split('_')[0] + '_res.bmp',[])
-        acc_dict_sul[str(img_testing).split('/')[2].split('_')[0] + '_res.bmp'].append(accurarcy)
-
-        
-
-        #showing the progress
-        acc_key = str(img_testing).split('/')[2].split('_')[0] + '_res.bmp'
-        print('%s   %f   \n' % (acc_key, acc_dict_sul[acc_key][0] ))
-
-    #write the results into txt
-    file_res = open(filePath + 'paras_accuracy_result_paraDiscarded.txt', 'w')
-    file_res.write('fileName \t \t Accuracy\n')
-    for i in acc_dict_oxi.keys():
-        file_res.write("%s \t %f\n" % (i,acc_dict_oxi[i][0]))
-    for i in acc_dict_sul.keys():
-        file_res.write("%s \t %f\n" % (i,acc_dict_sul[i][0]))
-
+        width, height, deepth = img_testing.shape
+    
+        resName = str(img_testing).split('/')[2].split('_')[0] + '_res.bmp'
+        filePath = 'data/'
+        show_res(res,accurarcy, width, height, filePath, resName, showImg = 0)
 
 
 # input an para dict, return a list containing all its data. para_dict['band1']['AA'] = ...
@@ -107,7 +130,6 @@ def normalize(arr1,arr2, arr3):
     return [arr1, arr2, arr3]
             
 #load average sulfuros data, return a spectrum array. 
-#attention: need to extract paras of every pic, tranversing these pic and extrac them. And don't know access of muti sp -traning and extracting yet. Possible solution: [sp_array1, sp_array2, sp_array3].
 def load_training_SP(type = 'sulfuro'):
     filePath = 'data/'
     # fileName = 'sulfuros/'
