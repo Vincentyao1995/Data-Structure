@@ -1,14 +1,110 @@
 ﻿import spectral as sp
 import os
-import Classifier_Exp2 as cl2
+import Classifier_Exp2 as exp2
 import numpy as np
 import math
 from glob import glob
 
+#check the data. And got acc txt file.
+#attention, input testing and training data should separate from check(), check() receives training data(2 main list or array)  you realize single_ref check and all_ref check by your self in experiment file. 
 
+def check(SP_ref_oxido, SP_ref_sulfuro, check_all = 0, use_SP_paras = 0):
+    
+    filePath = 'data/'
+    files_list_oxi = glob(filePath + 'oxidos/'+"*.hdr")
+    files_list_sul = glob(filePath + 'sulfuros/'+'*.hdr')
+    num_oxi = len(files_list_oxi)
+    num_sul = len(files_list_sul)
+    
+    #accuracy dict, the index is testing files' name and values is a list [single_SP, all_SP]
+    acc_dict_oxi = {}
+    acc_dict_sul = {}
+    
+    #check all the oxidos.
+    #for i in range(num_oxi):
+    
+    #    index0 = files_list_oxi[i].split('Esc')[-1].split('Ox')[-1][0:2]
+    #    # u could also achieve this by : 
+    #    #
+    #        # if i < 10:
+    #            # i = str('0' + str(i))
+    #        # else:
+    #            # i = str(i)
+    #    img_testing = exp2.input_testing_data(index = index0, type = 'oxido', check_all = check_all)
+
+    #    #core alg of check
+    #    # ////////SP_ref_oxido, SP_ref_sulfuro = input_training_data(use_multi_SP_as_reference = 1)
+    #    res, accurarcy = exp2.Tranversing(SP_ref_oxido, SP_ref_sulfuro, img_testing, testingType = 1, use_SP_paras = use_SP_paras)
+    #    acc_dict_oxi.setdefault(str(img_testing).split('/')[2].split('_')[0] + '_res.bmp',[])
+    #    acc_dict_oxi[str(img_testing).split('/')[2].split('_')[0] + '_res.bmp'].append(accurarcy)
+
+    #    #showing the progress
+        
+    #    acc_key = str(img_testing).split('/')[2].split('_')[0] + '_res.bmp'
+    #    print('%s   %f   \n' % (acc_key, acc_dict_oxi[acc_key][0] ))
+
+
+    #check all the sulfuros  
+    for i in range(num_sul):
+        
+        index0 = files_list_sul[i].split('Esc')[-1].split('Sulf')[-1][0:2] # attention: debug err? after split('Esc'), u got a list containing only one element.... x[0] == x[-1]
+        img_testing = exp2.input_testing_data(index = index0, type = 'sulfuro', check_all = check_all)
+        
+        #core alg of check
+        # /////SP_ref_oxido, SP_ref_sulfuro = input_training_data(use_multi_SP_as_reference = 0)
+        res, accurarcy = exp2.Tranversing(SP_ref_oxido, SP_ref_sulfuro, img_testing,  testingType = 2, use_SP_paras = use_SP_paras)
+        acc_dict_sul.setdefault(str(img_testing).split('/')[2].split('_')[0] + '_res.bmp',[])
+        acc_dict_sul[str(img_testing).split('/')[2].split('_')[0] + '_res.bmp'].append(accurarcy)
+
+        
+
+        #showing the progress
+        acc_key = str(img_testing).split('/')[2].split('_')[0] + '_res.bmp'
+        print('%s   %f   \n' % (acc_key, acc_dict_sul[acc_key][0] ))
+
+    #write the results into txt
+    file_res = open(filePath + 'paras_accuracy_result.txt', 'w')
+    file_res.write('fileName \t \t Accuracy\n')
+    for i in acc_dict_oxi.keys():
+        file_res.write("%s \t %f\n" % (i,acc_dict_oxi[i][0]))
+    for i in acc_dict_sul.keys():
+        file_res.write("%s \t %f\n" % (i,acc_dict_sul[i][0]))
+
+
+
+# input an para dict, return a list containing all its data. para_dict['band1']['AA'] = ...
+#para_list = [1,2,3,0.1.....]
+def dict_to_list(para_dict):
+    
+    para_list = []
+    for i in para_dict :
+        for j in para_dict[i]:
+            para_list.append(para_dict[i][j])
+            
+    return para_list
+
+#input three arrays and normalize them, return three normalized arrays.
+def normalize(arr1,arr2, arr3):
+
+    arr_length = len(arr1)
+    assert len(arr1) == len(arr2) and len(arr2) == len(arr3), 'length of your three arrays to be normalized is not equal! \n'
+    for i in range(arr_length):
+        value_list = [arr1[i], arr2[i], arr3[i]]
+        max_value = max(value_list)
+        min_value = min(value_list)
+        if max_value == min_value:
+            arr1[i] = 1
+            arr2[i] = 1
+            arr3[i] = 1
+            continue
+        arr1[i] = ( arr1[i] - min_value ) / (max_value - min_value)
+        arr2[i] = ( arr2[i] - min_value ) / (max_value - min_value)
+        arr3[i] = ( arr3[i] - min_value ) / (max_value - min_value)
+    return [arr1, arr2, arr3]
+            
 #load average sulfuros data, return a spectrum array. 
 #attention: need to extract paras of every pic, tranversing these pic and extrac them. And don't know access of muti sp -traning and extracting yet. Possible solution: [sp_array1, sp_array2, sp_array3].
-def load_data(type = 'sulfuro'):
+def load_training_SP(type = 'sulfuro'):
     filePath = 'data/'
     # fileName = 'sulfuros/'
 
@@ -24,9 +120,6 @@ def load_data(type = 'sulfuro'):
         file_temp.close()
         return np.array(sp_average ,dtype = np.float)
     else:
-        #read all the hdr's and got the average spectrum of all the data. attention: maybe we could use the def in 'Classifier_Exp2'
-        #see? this is so easy in python.
-        #cl2.cal_aver_SP()
         file_temp = sp.open_image(filePath + type + 's/' + fileNameList[1])
         file_temp.close()
         pass
@@ -115,6 +208,8 @@ def cal_SP_paras(ABP_bands_SP):
         AD = 1 - minRef
 
         #cal AW, ABP width
+        right_half_point = 0
+        left_half_point = 0
         maxRef = max(ABP_bands_SP[i])
         for j in range(len(ABP_bands_SP[i])-1):
             midRef = (minRef + maxRef) / 2
@@ -122,7 +217,7 @@ def cal_SP_paras(ABP_bands_SP):
                 left_half_point = j
             if ABP_bands_SP[i][j] <= midRef and ABP_bands_SP[i][j+1] > midRef :
                 right_half_point = j
-        AW = (right_half_point - left_half_point) * step
+        AW = abs(right_half_point - left_half_point) * step
 
         #cal AA
         AA = 0.0
@@ -159,15 +254,15 @@ def cal_SP_paras(ABP_bands_SP):
 
 def SP_paras(SP_array, type = 'sulfuro'):
 
-	ABP_bands = choose_ABP_bands(SP_array, type = type)
-	para_dict = cal_SP_paras(ABP_bands)
-	return para_dict()
-	
-	
+    ABP_bands = choose_ABP_bands(SP_array, type = type)
+    para_dict = cal_SP_paras(ABP_bands)
+    return para_dict
+    
+    
 if __name__ == '__main__':
     
     # 1. load sp data from img.
-    sp_average_sul = load_data(type = 'sulfuro')    
+    sp_average_sul = load_training_SP(type = 'sulfuro')    
     # 2. choose interesting area (absorption bands) in a spectrum
     sul_ABP_bands = choose_ABP_bands(sp_average_sul)
     # 3. Cal SP paras of this areas, and got the set of features.
