@@ -67,13 +67,13 @@ def check(SP_ref_oxido, SP_ref_sulfuro, check_all = 0, dataProcess_alg = dataPro
             #core alg of check
             # ////////SP_ref_oxido, SP_ref_sulfuro = input_training_data(use_multi_SP_as_reference = 1)
             res, accurarcy = Tranversing(SP_ref_oxido, SP_ref_sulfuro, img_testing, testingType = 'oxido', dataProcess_alg = dataProcess_alg)
-            acc_dict_oxi.setdefault(str(img_testing).split('/')[2].split('_')[0] + '_res.bmp',[])
-            acc_dict_oxi[str(img_testing).split('/')[2].split('_')[0] + '_res.bmp'].append(accurarcy)
+            acc_dict_oxi.setdefault(str(img_testing).split('/')[2].split('_')[0] + '_res.bmp',accurarcy)
+            #acc_dict_oxi[str(img_testing).split('/')[2].split('_')[0] + '_res.bmp'].append(accurarcy)
 
             #showing the progress
         
             acc_key = str(img_testing).split('/')[2].split('_')[0] + '_res.bmp'
-            print('%s   %f   \n' % (acc_key, acc_dict_oxi[acc_key][0] ))
+            print('%s   %f   \n' % (acc_key, acc_dict_oxi[acc_key] ))
 
 
         #check all the sulfuros  
@@ -81,26 +81,27 @@ def check(SP_ref_oxido, SP_ref_sulfuro, check_all = 0, dataProcess_alg = dataPro
         
             index0 = files_list_sul[i].split('Esc')[-1].split('Sulf')[-1][0:2] # attention: debug err? after split('Esc'), u got a list containing only one element.... x[0] == x[-1]
             img_testing = input_testing_data(index = index0, type = 'sulfuro', check_all = check_all)
-        
+
             #core alg of check
             # /////SP_ref_oxido, SP_ref_sulfuro = input_training_data(use_multi_SP_as_reference = 0)
             res, accurarcy = Tranversing(SP_ref_oxido, SP_ref_sulfuro, img_testing,  testingType = 'sulfuro', dataProcess_alg = dataProcess_alg)
-            acc_dict_sul.setdefault(str(img_testing).split('/')[2].split('_')[0] + '_res.bmp',[])
-            acc_dict_sul[str(img_testing).split('/')[2].split('_')[0] + '_res.bmp'].append(accurarcy)
-
-        
+            acc_dict_sul.setdefault(str(img_testing).split('/')[2].split('_')[0] + '_res.bmp',accurarcy)
+            #acc_dict_sul[str(img_testing).split('/')[2].split('_')[0] + '_res.bmp'].append(accurarcy)
 
             #showing the progress
             acc_key = str(img_testing).split('/')[2].split('_')[0] + '_res.bmp'
-            print('%s   %f   \n' % (acc_key, acc_dict_sul[acc_key][0] ))
+            print('%s   %f   \n' % (acc_key, acc_dict_sul[acc_key] ))
 
         #write the results into txt
-        file_res = open(filePath + '3paras_accuracy_non_normalized.txt', 'w')
+        file_res = open(filePath + 'ori_ABP_bands_SAM_test.txt', 'w')
         file_res.write('fileName \t \t Accuracy\n')
-        for i in acc_dict_oxi.keys():
-            file_res.write("%s \t %f\n" % (i,acc_dict_oxi[i][0]))
-        for i in acc_dict_sul.keys():
-            file_res.write("%s \t %f\n" % (i,acc_dict_sul[i][0]))
+
+        acc_dict_oxi = sorted(acc_dict_oxi.items(), key = lambda d: d[0])
+        acc_dict_sul = sorted(acc_dict_sul.items(), key = lambda d: d[0])
+        for i in range(len(acc_dict_oxi)):
+            file_res.write("%s \t %f\n" % (acc_dict_oxi[i][0],acc_dict_oxi[i][1]))
+        for i in range(len(acc_dict_sul)):
+            file_res.write("%s \t %f\n" % (acc_dict_sul[i][0],acc_dict_sul[i][1]))
 
     elif check_all == 0:
     
