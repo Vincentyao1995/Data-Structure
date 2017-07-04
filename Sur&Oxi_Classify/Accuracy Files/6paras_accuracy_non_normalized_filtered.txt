@@ -1,86 +1,87 @@
 medium acc:
+EscOx02B1_res.bmp  	  0.819172
+EscOx07B1_res.bmp  	  0.815195
+EscOx12B1_res.bmp  	  0.871926
 EscOx13B1_res.bmp  	  0.809538
- EscOx02B1_res.bmp  	  0.819172
- EscOx23B1_res.bmp  	  0.846205
- EscOx12B1_res.bmp  	  0.871926
- EscOx07B1_res.bmp  	  0.815195
- EscOx15B1_res.bmp  	  0.878884
- EscSulf58_res.bmp  	  0.822437
- EscSulf59_res.bmp  	  0.815508
- EscSulf10_res.bmp  	  0.899263
- EscSulf04_res.bmp  	  0.817691
- EscSulf18_res.bmp  	  0.890533
- EscSulf30_res.bmp  	  0.814319
- EscSulf31_res.bmp  	  0.831195
- 
+EscOx15B1_res.bmp  	  0.878884
+EscOx23B1_res.bmp  	  0.846205
+EscSulf04_res.bmp  	  0.817691
+EscSulf10_res.bmp  	  0.899263
+EscSulf18_res.bmp  	  0.890533
+EscSulf30_res.bmp  	  0.814319
+EscSulf31_res.bmp  	  0.831195
+EscSulf58_res.bmp  	  0.822437
+EscSulf59_res.bmp  	  0.815508
+
 low acc:
+EscOx01B1_res.bmp  	  0.336039
+EscOx03B1_res.bmp  	  0.098599
+EscOx05B1_res.bmp  	  0.526387
+EscOx06B1_res.bmp  	  0.722477
+EscOx08B1_res.bmp  	  0.676898
+EscOx09B1_res.bmp  	  0.296812
+EscOx11B1_res.bmp  	  0.785633
+EscOx14B1_res.bmp  	  0.493654
+EscOx16B1_res.bmp  	  0.446154
+EscOx17B1_res.bmp  	  0.645538
+EscOx18B1_res.bmp  	  0.408278
+EscOx20B1_res.bmp  	  0.683060
+EscOx21B1_res.bmp  	  0.390698
+EscOx24B1_res.bmp  	  0.421742
+EscOx25B1_res.bmp  	  0.154706
+EscOx26B1_res.bmp  	  0.191977
+EscOx27B1_res.bmp  	  0.471816
+EscOx28B1_res.bmp  	  0.106991
+EscOx30B1_res.bmp  	  0.141283
+EscOx31B1_res.bmp  	  0.119197
+EscOx33B1_res.bmp  	  0.301010
+EscOx34B1_res.bmp  	  0.109105
+EscOx36B1_res.bmp  	  0.705914
+EscOx37B1_res.bmp  	  0.265054
+EscOx38B1_res.bmp  	  0.099318
+EscOx39B1_res.bmp  	  0.249053
+EscOx40B1_res.bmp  	  0.352429
 EscOx41B1_res.bmp  	  0.416818
- EscOx11B1_res.bmp  	  0.785633
- EscOx21B1_res.bmp  	  0.390698
- EscOx28B1_res.bmp  	  0.106991
- EscOx08B1_res.bmp  	  0.676898
- EscOx25B1_res.bmp  	  0.154706
- EscOx38B1_res.bmp  	  0.099318
- EscOx24B1_res.bmp  	  0.421742
- EscOx16B1_res.bmp  	  0.446154
- EscOx01B1_res.bmp  	  0.336039
- EscOx18B1_res.bmp  	  0.408278
- EscOx26B1_res.bmp  	  0.191977
- EscOx03B1_res.bmp  	  0.098599
- EscOx40B1_res.bmp  	  0.352429
- EscOx39B1_res.bmp  	  0.249053
- EscOx37B1_res.bmp  	  0.265054
- EscOx27B1_res.bmp  	  0.471816
- EscOx31B1_res.bmp  	  0.119197
- EscOx36B1_res.bmp  	  0.705914
- EscOx06B1_res.bmp  	  0.722477
- EscOx30B1_res.bmp  	  0.141283
- EscOx05B1_res.bmp  	  0.526387
- EscOx17B1_res.bmp  	  0.645538
- EscOx34B1_res.bmp  	  0.109105
- EscOx14B1_res.bmp  	  0.493654
- EscOx33B1_res.bmp  	  0.301010
- EscOx09B1_res.bmp  	  0.296812
- EscOx20B1_res.bmp  	  0.683060
- EscSulf14_res.bmp  	  0.721195
- EscSulf44_res.bmp  	  0.675635
- EscSulf32_res.bmp  	  0.790594
- EscSulf48_res.bmp  	  0.718802
- EscSulf35_res.bmp  	  0.195896
- EscSulf50_res.bmp  	  0.100667
- EscSulf15_res.bmp  	  0.765087
- EscSulf25_res.bmp  	  0.656311
- EscSulf57_res.bmp  	  0.681298
- EscSulf51_res.bmp  	  0.667419
- EscSulf09_res.bmp  	  0.414850
- EscSulf16_res.bmp  	  0.712541
- EscSulf46_res.bmp  	  0.752212
- EscSulf20_res.bmp  	  0.367907
- EscSulf55_res.bmp  	  0.575342
- EscSulf45_res.bmp  	  0.588728
- EscSulf01_res.bmp  	  0.743323
- EscSulf54_res.bmp  	  0.454614
- EscSulf22_res.bmp  	  0.447220
- EscSulf03_res.bmp  	  0.768466
- EscSulf37_res.bmp  	  0.078759
- EscSulf11_res.bmp  	  0.695461
- EscSulf12_res.bmp  	  0.206532
- EscSulf27_res.bmp  	  0.042740
- EscSulf13_res.bmp  	  0.770525
- EscSulf08_res.bmp  	  0.794894
- EscSulf33_res.bmp  	  0.765262
- EscSulf62_res.bmp  	  0.090604
- 
+EscSulf01_res.bmp  	  0.743323
+EscSulf03_res.bmp  	  0.768466
+EscSulf08_res.bmp  	  0.794894
+EscSulf09_res.bmp  	  0.414850
+EscSulf11_res.bmp  	  0.695461
+EscSulf12_res.bmp  	  0.206532
+EscSulf13_res.bmp  	  0.770525
+EscSulf14_res.bmp  	  0.721195
+EscSulf15_res.bmp  	  0.765087
+EscSulf16_res.bmp  	  0.712541
+EscSulf20_res.bmp  	  0.367907
+EscSulf22_res.bmp  	  0.447220
+EscSulf25_res.bmp  	  0.656311
+EscSulf27_res.bmp  	  0.042740
+EscSulf32_res.bmp  	  0.790594
+EscSulf33_res.bmp  	  0.765262
+EscSulf35_res.bmp  	  0.195896
+EscSulf37_res.bmp  	  0.078759
+EscSulf44_res.bmp  	  0.675635
+EscSulf45_res.bmp  	  0.588728
+EscSulf46_res.bmp  	  0.752212
+EscSulf48_res.bmp  	  0.718802
+EscSulf50_res.bmp  	  0.100667
+EscSulf51_res.bmp  	  0.667419
+EscSulf54_res.bmp  	  0.454614
+EscSulf55_res.bmp  	  0.575342
+EscSulf57_res.bmp  	  0.681298
+EscSulf62_res.bmp  	  0.090604
+
 high acc:
+EscOx04B1_res.bmp  	  0.939487
+EscOx10B1_res.bmp  	  0.982582
 EscOx19B1_res.bmp  	  0.941399
- EscOx35B1_res.bmp  	  0.950276
- EscOx04B1_res.bmp  	  0.939487
- EscOx22B1_res.bmp  	  0.954491
- EscOx10B1_res.bmp  	  0.982582
- EscOx32B1_res.bmp  	  0.980784
- EscOx29B1_res.bmp  	  0.982348
- EscSulf49_res.bmp  	  0.903509
- EscSulf39_res.bmp  	  0.959158
- EscSulf42_res.bmp  	  0.906478
- 
+EscOx22B1_res.bmp  	  0.954491
+EscOx29B1_res.bmp  	  0.982348
+EscOx32B1_res.bmp  	  0.980784
+EscOx35B1_res.bmp  	  0.950276
+EscSulf02_res.bmp  	  0.983305
+EscSulf39_res.bmp  	  0.959158
+EscSulf42_res.bmp  	  0.906478
+EscSulf49_res.bmp  	  0.903509
+
 Total acc  	  >0.9  0.137500  	 <0.8  0.700000 	 0.8-0.9  0.162500 
