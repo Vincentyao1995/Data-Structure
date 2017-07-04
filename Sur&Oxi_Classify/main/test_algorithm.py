@@ -66,7 +66,7 @@ def check(SP_ref_oxido, SP_ref_sulfuro, check_all = 0, dataProcess_alg = dataPro
 
             #core alg of check
             # ////////SP_ref_oxido, SP_ref_sulfuro = input_training_data(use_multi_SP_as_reference = 1)
-            res, accurarcy = Tranversing(SP_ref_oxido, SP_ref_sulfuro, img_testing, testingType = 'oxido', dataProcess_alg = dataProcess_alg)
+            res, accurarcy = Tranversing(SP_ref_oxido, SP_ref_sulfuro, img_testing, testingType = 'oxido', dataProcess_alg = dataProcess_alg,classifier = classifier)
             acc_dict_oxi.setdefault(str(img_testing).split('/')[2].split('_')[0] + '_res.bmp',accurarcy)
             #acc_dict_oxi[str(img_testing).split('/')[2].split('_')[0] + '_res.bmp'].append(accurarcy)
 
@@ -84,7 +84,7 @@ def check(SP_ref_oxido, SP_ref_sulfuro, check_all = 0, dataProcess_alg = dataPro
 
             #core alg of check
             # /////SP_ref_oxido, SP_ref_sulfuro = input_training_data(use_multi_SP_as_reference = 0)
-            res, accurarcy = Tranversing(SP_ref_oxido, SP_ref_sulfuro, img_testing,  testingType = 'sulfuro', dataProcess_alg = dataProcess_alg)
+            res, accurarcy = Tranversing(SP_ref_oxido, SP_ref_sulfuro, img_testing,  testingType = 'sulfuro', dataProcess_alg = dataProcess_alg,classifier = classifier)
             acc_dict_sul.setdefault(str(img_testing).split('/')[2].split('_')[0] + '_res.bmp',accurarcy)
             #acc_dict_sul[str(img_testing).split('/')[2].split('_')[0] + '_res.bmp'].append(accurarcy)
 
