@@ -43,7 +43,7 @@ def input_testing_data(index = '10',type = 'oxido', check_all = 0):
     return img_testing
 
 # input SP_reference_oxido, sulfuro, check_all =1 if you want to check all files and got accuracy file. and dataProcess_alg to process your testing sp array 
-def check(SP_ref_oxido, SP_ref_sulfuro, check_all = 0, dataProcess_alg = dataProcess_alg_pass, classifier = SAM.classifier_SAM):
+def check(SP_ref_oxido, SP_ref_sulfuro, check_all = 0, dataProcess_alg = dataProcess_alg_pass, classifier = SAM.classifier_SAM,file_acc_name = 'acc_res.txt'):
     if check_all == 1:    
         filePath = 'data/'
         files_list_oxi = glob(filePath + 'oxidos/'+"*.hdr")
@@ -93,7 +93,7 @@ def check(SP_ref_oxido, SP_ref_sulfuro, check_all = 0, dataProcess_alg = dataPro
             print('%s   %f   \n' % (acc_key, acc_dict_sul[acc_key] ))
 
         #write the results into txt
-        file_res = open(filePath + 'ori_ABP_bands_SAM_test.txt', 'w')
+        file_res = open(filePath +file_acc_name, 'w')
         file_res.write('fileName \t \t Accuracy\n')
 
         acc_dict_oxi = sorted(acc_dict_oxi.items(), key = lambda d: d[0])

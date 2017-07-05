@@ -154,27 +154,38 @@ def load_training_SP(type = 'sulfuro'):
 # input auto_set, default 1 and set the ABPs (absorption bands) are set mannually
 # type controls the ABP bands' difference between sulf and oxi. (tho no differences now.)
 # sp is a spectrum.
-def choose_ABP_bands(sp, auto_set = 1, type = 'sulfuro'):
+def choose_ABP_bands(sp, auto_set = 1, type = 'sulfuro', choose_band = [1,1,1]):
+
     if auto_set == 1:
         
         #sp's sampling interval is around 6.3 um, not continuous. 928.08 - 2530.1500
         #attention, need to set the bands automatically.
         ABP_bands_sulf = []
-        ABP_bands_sulf.append(sp[51:91])  # see at band excel, starting from 1;   52-92  1250um-1500um
-        ABP_bands_sulf.append(sp[138:171])  # 1800:2000 ,139-172
-        ABP_bands_sulf.append(sp[186:211])  # 2100:2250 , 187-212 
+        ABP_bands_oxi = []
+        for i in range(len(choose_band)):
+            if choose_band[i] == 1 and i==0:
+                ABP_bands_sulf.append(sp[51:91])  # see at band excel, starting from 1;   52-92  1250um-1500um
+                ABP_bands_oxi.append(sp[51:91])
+                continue
+            if choose_band[i] == 1 and i==1:
+                ABP_bands_sulf.append(sp[138:171])  # 1800:2000 ,139-172
+                ABP_bands_oxi.append(sp[138:171])
+                continue
+            if choose_band[i] == 1 and i==2:
+                ABP_bands_sulf.append(sp[186:211])  # 2100:2250 , 187-212 
+                ABP_bands_oxi.append(sp[186:211])
+                continue
+        
+        
+        
+        
+        
         
         if type == 'sulfuro':
             return ABP_bands_sulf
-        
-        ABP_bands_oxi = []
-        ABP_bands_oxi.append(sp[51:91])
-        ABP_bands_oxi.append(sp[138:171])
-        ABP_bands_oxi.append(sp[186:211])
-        
         if type == 'oxido':
             return ABP_bands_oxi
-        
+
     else:
         # maybe Wizzard here. or design some auto-detect ABP alg
         pass
@@ -278,9 +289,9 @@ def cal_SP_paras(ABP_bands_SP):
     return para_dict
 
 
-def SP_paras(SP_array, type = 'sulfuro'):
+def SP_paras(SP_array, type = 'sulfuro', choose_band = [1,1,1]):
 
-    ABP_bands = choose_ABP_bands(SP_array, type = type)
+    ABP_bands = choose_ABP_bands(SP_array, type = type, choose_band = choose_band)
     para_dict = cal_SP_paras(ABP_bands)
     return para_dict
     
