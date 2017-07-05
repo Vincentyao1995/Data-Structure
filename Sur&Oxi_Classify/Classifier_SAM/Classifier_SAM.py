@@ -6,9 +6,11 @@ import os
 from PIL import Image
 from glob import glob
 import time
+import test_algorithm as ta
+
 start_time = time.time()
 
-#attention: need to change res's name and 
+normalize_button = 0
 
 #cal the average spectrum of a img. Input a img and return an array (the same format as Spectral lib's )
 def cal_aver_SP(img):
@@ -168,35 +170,69 @@ def input_testing_data(index = '37', type = 'oxido', check_all = False):
         exit(0)
     return img_testing
     
-# spectrum angle mapping, input reference, testing spectrum and deepth (spectrum bands). Return an angle between ref and test SP.
-def cal_SP_angle(SP_reference, SP_testing, deepth):
+# spectrum angle mapping, input spectrum reference1 and reference2, testing spectrum and deepth (spectrum bands). Return testing spectrum belongs to class1 or class2
+def classifier_SAM(SP_reference1, SP_reference2, SP_testing):
     DownSide1 = 0
     DownSide2 = 0
     UpSide = 0
+
+    assert len(SP_reference1) == len(SP_reference2) and len(SP_reference2) == len(SP_testing), 'data length not equal (testing, ref1, ref2)' 
+
+    deepth = len(SP_reference1)
     for d in range(deepth):
         bandValue_testing = SP_testing[d]
-        bandValue_reference = SP_reference[d]
+        bandValue_reference = SP_reference1[d]
         
         UpSide += bandValue_reference* bandValue_testing
         
         DownSide1 += bandValue_reference**2
         DownSide2 += bandValue_testing**2
     
-    angle = UpSide/ (DownSide1**0.5 * DownSide2**0.5)
+    angle_ref1_testing = UpSide/ (DownSide1**0.5 * DownSide2**0.5)
+
+    DownSide1 = 0
+    DownSide2 = 0
+    UpSide = 0
+    for d in range(deepth):
+        bandValue_testing = SP_testing[d]
+        bandValue_reference = SP_reference2[d]
+        
+        UpSide += bandValue_reference* bandValue_testing
+        
+        DownSide1 += bandValue_reference**2
+        DownSide2 += bandValue_testing**2
     
+    angle_ref2_testing = UpSide/ (DownSide1**0.5 * DownSide2**0.5)
+
     try:
-        angle = math.acos(angle)
+        angle1 = math.acos(angle_ref1_testing)
+        angle2 = math.acos(angle_ref2_testing)
     except Exception as err:
         print ('the abs(angle) > 1. \n Error info:'+ err.args, end = '\n')
         exit(0)
-    return angle
+
+    if angle1 <= angle2:
+        class_type = 1
+    else:
+        class_type = 2    
+        
+    return class_type
     
+def dataProcess_alg_pass(SP):
+    return SP
+
 #tranversing the whole testing img and cal each pixel, then classify it. return [res, accurarcy], the first record the classification info and the later saves accurarcy
 # input two ref img, testing img and testing type (Default 1 is testing Oxido, 2 is testing Sul)
-def Tranversing(SP_reference1, SP_reference2, img_testing, testingType = 1):
+def Tranversing(SP_reference1, SP_reference2, img_testing, testingType = 'oxido', dataProcess_alg = dataProcess_alg_pass):
     
+    if testingType == 'oxido':
+        testingType = 1
+    elif testingType == 'sulfuro':
+        testingType = 2
+
+
     width, height, deepth = img_testing.shape
-    
+    deepth = len(SP_reference1)
     #res is a list that would save the classification result, 2 is background, 1 is right, 0 is wrong. 
     res = []
     # the pixel number of background
@@ -205,16 +241,26 @@ def Tranversing(SP_reference1, SP_reference2, img_testing, testingType = 1):
     for i in range(width):
         for j in range(height):
             SP_testing = img_testing[i,j]
+                
             # if this pixel is background, res = 2
             if exclude_BG(SP_testing):
                 res.append(2)
                 count_bg += 1
                 continue
             
+            # pre-algorithm process data.
+            SP_testing = dataProcess_alg(SP_testing)
+
+            #testing, debugging
+            if normalize_button == 1:
+                import SP_paras
+                SP_testing, SP_reference1, SP_reference2 = SP_paras.normalize(SP_reference1,SP_reference2,SP_testing)
             # compute spectrum angles.
             angle_ref1 = cal_SP_angle(SP_reference1, SP_testing, deepth)
-            angle_ref2 = cal_SP_angle(SP_reference2,SP_testing, deepth)
-
+            angle_ref2 = cal_SP_angle(SP_reference2, SP_testing, deepth)
+            
+            
+            
             # attention please: this is the red mark code, maybe u could add more barriers here.
             # attention please: now ref1 is oxido, ref2 is sulfuro, testing img is a oxido
             if testingType == 1:
@@ -263,13 +309,12 @@ def main(check_all = False):
         
 
         #check all the oxidos.
-        
         for i in range(1,num_oxi+1):
             if i < 10:
                 i = str('0' + str(i))
             else:
                 i = str(i)
-            img_testing = input_testing_data(index = i, type = 'oxido', check_all = True)
+            img_testing = ta.input_testing_data(index = i, type = 'oxido', check_all = True)
 
             #single reference check
             SP_ref_oxido, SP_ref_sulfuro = input_training_data(use_multi_SP_as_reference = 0)
@@ -287,11 +332,11 @@ def main(check_all = False):
             print('%s   %f   %f\n' % (acc_key, acc_dict_oxi[acc_key][0],acc_dict_oxi[acc_key][1] ))
 
 
-        #check all the sulfuros   attention!!!!!!!!!!!!!!!!!!!!!!!!!
+        #check all the sulfuros  
         for i in range(num_sul):
             
             index0 = files_list_sul[i].split('Esc')[-1].split('Sulf')[-1][0:2]
-            img_testing = input_testing_data(index = index0, type = 'sulfuro', check_all = True)
+            img_testing = ta.input_testing_data(index = index0, type = 'sulfuro', check_all = True)
             #single reference check
             SP_ref_oxido, SP_ref_sulfuro = input_training_data(use_multi_SP_as_reference = 0)
             res, accurarcy = Tranversing(SP_ref_oxido, SP_ref_sulfuro, img_testing, 2)
@@ -308,7 +353,6 @@ def main(check_all = False):
             print('%s   %f   %f\n' % (acc_key, acc_dict_sul[acc_key][0],acc_dict_sul[acc_key][1] ))
 
         #write the results into txt
-        #decided to write it all after save all accuracy in the list, attention, amending here
         file_res = open(filePath + 'accuracy_result2.txt', 'w')
 
         for i in acc_dict_oxi.keys():
@@ -322,7 +366,7 @@ def main(check_all = False):
         SP_ref_oxido, SP_ref_sulfuro = input_training_data()
     
         #input testing data
-        img_testing = input_testing_data()
+        img_testing = ta.input_testing_data()
     
         # tranversing the img and cal spectral angle between testImg and refImg. 
         #Input: testing img and reference img.
@@ -337,7 +381,6 @@ def main(check_all = False):
         resName = str(img_testing).split('/')[2].split('_')[0] + '_res.bmp'
         filePath = 'data/'
         show_res(res,accurarcy, width, height, filePath, resName, showImg = 0)
-
 
 
 if __name__ == '__main__':
