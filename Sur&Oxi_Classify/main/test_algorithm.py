@@ -193,3 +193,19 @@ def load_training_SP(type = 'sulfuro'):
     sp.open_image(filePath + fileName)
 
     #attention: other choices to input a training spectrum
+
+def load_image(type = 'oxido',index = '01'):	
+	
+	if type == 'oxido':
+		filePath = 'data/oxidos/'
+		fileName = 'EscOx' + index + 'B1_rough_SWIR.hdr'
+	elif type == 'sulfro':
+		filePath = 'data/sulfuros/'
+		fileName = 'EscSulf' + index + '_Backside_SWIR_Subset_Masked.hdr'
+		
+	image = sp.open_image(filePath + fileName)
+	
+	return image
+	
+	
+	
