@@ -127,7 +127,7 @@ def Tranversing(SP_reference1, SP_reference2, img_testing, testingType = 'oxido'
     
     width, height, deepth = img_testing.shape
     deepth = len(SP_reference1)
-    #res is a list that would save the classification result, 2 is background, 1 is right, 0 is wrong. 
+    #res is a list that would save the classification result, 2 is background, 1 is right, 0 is wrong.
     res = []
     # the pixel number of background
     count_bg = 0
@@ -194,18 +194,16 @@ def load_training_SP(type = 'sulfuro'):
 
     #attention: other choices to input a training spectrum
 
-def load_image(type = 'oxido',index = '01'):	
-	
-	if type == 'oxido':
-		filePath = 'data/oxidos/'
-		fileName = 'EscOx' + index + 'B1_rough_SWIR.hdr'
-	elif type == 'sulfro':
-		filePath = 'data/sulfuros/'
-		fileName = 'EscSulf' + index + '_Backside_SWIR_Subset_Masked.hdr'
-		
-	image = sp.open_image(filePath + fileName)
-	
-	return image
-	
-	
-	
+def load_image(type = 'oxido',index = '01', filePath = None):	
+    if filePath == None:
+        if type == 'oxido':
+            filePath = 'data/oxidos/'
+            fileName = 'EscOx' + index + 'B1_rough_SWIR.hdr'
+        elif type == 'sulfro':
+            filePath = 'data/sulfuros/'
+            fileName = 'EscSulf' + index + '_Backside_SWIR_Subset_Masked.hdr'
+        
+        image = sp.open_image(filePath + fileName)
+    else:
+        image = sp.open_image(filePath)
+    return image
