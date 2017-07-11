@@ -4,20 +4,23 @@ import Classifier_SAM as SAM
 import SP_paras
 import numpy as np
 
+#This code is not very flexible, so that I did not use this to rewrite the function: cal_proxy(). Experiment4 and Experiment5 did similar thing, Exp4 use average sp of image to cal paras.
+
 # Switches ~~~~~~~~~~~~~~~
 debugging = 0
-outputParas = 1
+outputParas = 0
+
 
 def output_paras(paras_dict):
     filePath = 'data/'
-    fileName = 'averageSP_allPics_paras.txt'
+    fileName = 'band2_averageSP_allPics_paras.txt'
     file_output = open(filePath+fileName, 'w')
     file_output.write("fileName\t\t\tAA\t\t\tAD\t\t\tAP\t\t\tAS\t\t\tAW\t\t\tSAI\n")
     for i in range(len(paras_dict['AA'])):
         file_output.write("%d\t\t\t\t%f\t\t\t%f\t\t\t%f\t\t\t%f\t\t\t%f\t\t\t%f\n" % (i+1,paras_dict['AA'][i],paras_dict['AD'][i],paras_dict['AP'][i],paras_dict['AS'][i],paras_dict['AW'][i],paras_dict['SAI'][i]))
         # or for key in sorted(paras_dict.keys()): file.write("%f\t\t\t" % paras_dict[key])
     
-def corrcoef_para_amount(choose_band = [1,0,0], file_out_name = 'paras_bands.txt', read_Rietv = 0):
+def corrcoef_para_amount(choose_band = [1,0,0], file_out_name = 'corrcoef_test.txt', read_Rietv = 0):
     global outputParas
     filePath = 'C:/Users/acer-pc/Desktop/Mitacs/_data/'
     fileName = 'python_kaolin.xlsx'
@@ -63,7 +66,7 @@ def corrcoef_para_amount(choose_band = [1,0,0], file_out_name = 'paras_bands.txt
             if float(index) < 10:
                 index = '0' + index
             image = ta.load_image(type = 'sulfro', index = index)
-        sp_average = SAM.cal_aver_SP(image)
+        sp_average = SAM.cal_avg_SP(image)
     
         para_dict = SP_paras.SP_paras(sp_average,choose_band = choose_band)
         para_list = SP_paras.dict_to_list(para_dict)
@@ -74,6 +77,7 @@ def corrcoef_para_amount(choose_band = [1,0,0], file_out_name = 'paras_bands.txt
         output_paras(mineral_dict)
         print('paras output done!\n')
         return 0
+
     # cal correlation between mineral_dict (paras) and amount_minerals
     coe_Kaolinite = {}
     coe_Gypsum = {}
@@ -171,7 +175,7 @@ def corrcoef_para_amount(choose_band = [1,0,0], file_out_name = 'paras_bands.txt
    
 
 if __name__ == '__main__':
-    corrcoef_para_amount(choose_band = [1,0,0])
+    corrcoef_para_amount(choose_band = [1,1,1])
     #corrcoef_para_amount(choose_band = [0,1,0])
     #corrcoef_para_amount(choose_band = [0,0,1])
     print('all done!\n')

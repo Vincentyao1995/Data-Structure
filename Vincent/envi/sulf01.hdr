@@ -1,0 +1,20 @@
+ENVI
+description = {
+  Display Output to Image [Mon Jul 10 11:27:55 2017]}
+samples = 134
+lines   = 147
+bands   = 3
+header offset = 0
+file type = ENVI Standard
+data type = 1
+interleave = bsq
+sensor type = Unknown
+byte order = 0
+x start = 134
+y start = 269
+wavelength units = Unknown
+default stretch = 0.000000 255.000000 linear
+band names = {
+ R (Sam (EscSulf01_Backside_SWIR_Subset_Masked):[Memory5]), 
+ G (Sam (EscSulf01_Backside_SWIR_Subset_Masked):[Memory5]), 
+ B (Sam (EscSulf01_Backside_SWIR_Subset_Masked):[Memory5])}

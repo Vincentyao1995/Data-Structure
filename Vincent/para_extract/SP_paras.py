@@ -2,9 +2,12 @@
 import os
 import test_algorithm as ta
 import numpy as np
+import pandas as pd
 import math
 from glob import glob
 
+bands_init = []
+bands_end = []
 #define switch
 testOxi = 1
 
@@ -97,7 +100,19 @@ def check(SP_ref_oxido, SP_ref_sulfuro, check_all = 0, dataProcess_alg = dataPro
         filePath = 'data/'
         show_res(res,accurarcy, width, height, filePath, resName, showImg = 0)
 
-
+#convert the dictionary to dataFrame.
+def dict_to_dataFrame(para_dict, support_now = 0):
+    if len(para_dict) > 1:
+        print('did not support multiple wavelength input now, auto calculate the first band you input.')
+        for key in sorted(para_dict.keys()):
+            return para_dict[key]
+    else:
+        for key in sorted(para_dict.keys()):
+            return para_dict[key]
+    if support_now == 1:
+        df = pd.DataFrame(para_dict)
+        df = df.transpose()
+        return df
 # input an para dict, return a list containing all its data. para_dict['band1']['AA'] = ...
 #para_list = [1,2,3,0.1.....]
 def dict_to_list(para_dict):
@@ -151,49 +166,75 @@ def load_training_SP(type = 'sulfuro'):
         pass
     sp.open_image(filePath + fileName)
 
+def rectify(sp_ABP_band, minRef_index):
+    sp_rec = []
+    initial_left = 0
+    initial_right = len(sp_ABP_band)
+    maxRef_left = max(sp_ABP_band[:minRef_index])
+    maxRef_right = max(sp_ABP_band[minRef_index:])
+    
+    for i in range(len(sp_ABP_band)):
+        if sp_ABP_band[i] == maxRef_left and i < minRef_index:
+            initial_left = i
+        if sp_ABP_band[i] == maxRef_right and i > minRef_index:
+            initial_right = i
+    
+    sp_rec = sp_ABP_band[initial_left:initial_right+1]
+
+    return sp_rec
+
 # input auto_set, default 1 and set the ABPs (absorption bands) are set mannually
 # type controls the ABP bands' difference between sulf and oxi. (tho no differences now.)
 # sp is a spectrum.
-def choose_ABP_bands(sp, auto_set = 1, type = 'sulfuro', choose_band = [1,1,1]):
+#attention, maybe user should input spectrum resolution and spectrum range. So that could auto match the spectrum index from wavelength
+def choose_ABP_bands(sp, auto_set = 1, type = 'sulfuro', choose_band = [1,1,1], wavelength = None):
 
-    if auto_set == 1:
-        
-        #sp's sampling interval is around 6.3 um, not continuous. 928.08 - 2530.1500
-        #attention, need to set the bands automatically.
-        ABP_bands_sulf = []
-        ABP_bands_oxi = []
-        for i in range(len(choose_band)):
-            if choose_band[i] == 1 and i==0:
-                ABP_bands_sulf.append(sp[51:91])  # see at band excel, starting from 1;   52-92  1250um-1500um
-                ABP_bands_oxi.append(sp[51:91])
-                continue
-            if choose_band[i] == 1 and i==1:
-                ABP_bands_sulf.append(sp[138:171])  # 1800:2000 ,139-172
-                ABP_bands_oxi.append(sp[138:171])
-                continue
-            if choose_band[i] == 1 and i==2:
-                ABP_bands_sulf.append(sp[186:211])  # 2100:2250 , 187-212 
-                ABP_bands_oxi.append(sp[186:211])
-                continue
-        
-        
-        
-        
-        
+    global bands_init
+    global bands_end
+    sp_reso = 256
+    sp_range = (928.08,2530.1500)
+    sp_index_reso = (sp_range[1] - sp_range[0])/ sp_reso
+    
+
+    if wavelength != None:
+        ABP_bands = []
+        for band in wavelength:
+            waveInit = band[0] - sp_range[0]
+            waveEnd = band[1] - sp_range[0]
+            indexInit = int(waveInit/sp_index_reso)
+            indexEnd = int(waveEnd/sp_index_reso)
+            bands_init.append(indexInit)
+            bands_end.append(indexEnd)
+            ABP_bands.append(sp[indexInit:indexEnd])
+        return ABP_bands
+    #sp's sampling interval is around 6.3 um, not continuous. 928.08 - 2530.1500
+    #attention, need to set the bands automatically.
+    ABP_bands_sulf = []
+    ABP_bands_oxi = []
+    for i in range(len(choose_band)):
+        if choose_band[i] == 1 and i==0:
+            ABP_bands_sulf.append(sp[51:91])  # see at band excel, starting from 1;   52-92  1250um-1500um
+            ABP_bands_oxi.append(sp[51:91])
+            continue
+        if choose_band[i] == 1 and i==1:
+            ABP_bands_sulf.append(sp[138:171])  # 1800:2000 ,139-172
+            ABP_bands_oxi.append(sp[138:171])
+            continue
+        if choose_band[i] == 1 and i==2:
+            ABP_bands_sulf.append(sp[186:211])  # 2100:2250 , 187-212 
+            ABP_bands_oxi.append(sp[186:211])
+            continue
         
         if type == 'sulfuro':
             return ABP_bands_sulf
         if type == 'oxido':
             return ABP_bands_oxi
 
-    else:
-        # maybe Wizzard here. or design some auto-detect ABP alg
-        pass
         
 #input absorption bands(some specific area) of a spectrum, and return these bands' paras	
 def cal_SP_paras(ABP_bands_SP):
     
-    ####################################attention: this part is manually, manually, manually!!!######################################
+    global bands_init, bands_end
     
     #the key of band_index is 0-255, value is wavelength
     band_index = {}
@@ -201,16 +242,7 @@ def cal_SP_paras(ABP_bands_SP):
     step = int ((2530.15-928.08)/ 256)
     for i in range(256):
         band_index.setdefault(i, 928.08 + i* step)
-
-    bands_init = [] 
-    bands_init.append(51)
-    bands_init.append(138)
-    bands_init.append(186)
-    bands_end = []
-    bands_end.append(91)
-    bands_end.append(171)
-    bands_end.append(211)
-    #################################################################################################################################
+    
 
 
 
@@ -235,6 +267,7 @@ def cal_SP_paras(ABP_bands_SP):
 
         #cal AP, ABP position.
         minRef = min(ABP_bands_SP[i])
+        maxRef = max(ABP_bands_SP[i])
         minRef_index = -1
         for j in range(len(ABP_bands_SP[i])):
             if ABP_bands_SP[i][j] == minRef:
@@ -242,12 +275,12 @@ def cal_SP_paras(ABP_bands_SP):
         AP = band_index[  j + bands_init[i]   ]
 
         #cal AD, ABP deepth
-        AD = 1 - minRef
+        AD = maxRef - minRef
 
         #cal AW, ABP width
         right_half_point = 0
         left_half_point = 0
-        maxRef = max(ABP_bands_SP[i])
+        
         for j in range(len(ABP_bands_SP[i])-1):
             midRef = (minRef + maxRef) / 2
             if ABP_bands_SP[i][j] >= midRef and ABP_bands_SP[i][j+1] < midRef:
@@ -255,6 +288,9 @@ def cal_SP_paras(ABP_bands_SP):
             if ABP_bands_SP[i][j] <= midRef and ABP_bands_SP[i][j+1] > midRef :
                 right_half_point = j
         AW = abs(right_half_point - left_half_point) * step
+
+        # before compute AA, SAI, AS, u should rectify ABP bands, let correct and precise shoulder be the left and right initial.
+        ABP_bands_SP[i] = rectify(ABP_bands_SP[i], minRef_index)
 
         #cal AA
         AA = 0.0
@@ -269,7 +305,10 @@ def cal_SP_paras(ABP_bands_SP):
                 leftArea += 1 - ABP_bands_SP[i][j]
             else:
                 rightArea += 1 - ABP_bands_SP[i][j]
-        AS = math.log1p(rightArea/ leftArea )
+        if leftArea == 0:
+            AS = 0
+        else:
+            AS = math.log1p(rightArea/ leftArea )
 
         #cal SAI
         d = (AP - band_index[bands_init[i]])/(band_index[bands_end[i]] - band_index[bands_init[i]])
@@ -289,9 +328,9 @@ def cal_SP_paras(ABP_bands_SP):
     return para_dict
 
 
-def SP_paras(SP_array, type = 'sulfuro', choose_band = [1,1,1]):
+def SP_paras(SP_array, type = 'sulfuro', choose_band = [1,1,1], wavelength = None):
 
-    ABP_bands = choose_ABP_bands(SP_array, type = type, choose_band = choose_band)
+    ABP_bands = choose_ABP_bands(SP_array, type = type, choose_band = choose_band, wavelength = wavelength)
     para_dict = cal_SP_paras(ABP_bands)
     return para_dict
     

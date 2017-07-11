@@ -13,7 +13,7 @@ start_time = time.time()
 normalize_button = 0
 
 #cal the average spectrum of a img. Input a img and return an array (the same format as Spectral lib's )
-def cal_aver_SP(img):
+def cal_avg_SP(img):
     width, height, deepth = img.shape
     sum_SP = 0
     count = 0
@@ -88,7 +88,7 @@ def input_training_data( use_multi_SP_as_reference = 0, ui = False):
             except Exception as err:
                 print("Cannot open your oxido file, confirm your filePath is correct!\n Error info: " + str(err.args))
                 exit(0)
-            sp_oxi = cal_aver_SP(img_oxi)
+            sp_oxi = cal_avg_SP(img_oxi)
             
             try :
                  assert len(SP_oxi_all)  == len(sp_oxi)
@@ -105,7 +105,7 @@ def input_training_data( use_multi_SP_as_reference = 0, ui = False):
             except Exception as err:
                 print("Cannot open your suluro file, confirm your filePath is correct!\n Error info: " + str(err.args))
                 exit(0)
-            sp_sul = cal_aver_SP(img_sul)
+            sp_sul = cal_avg_SP(img_sul)
             
             try:
                 assert len(SP_sul_all) == len(sp_sul)
@@ -138,8 +138,8 @@ def input_training_data( use_multi_SP_as_reference = 0, ui = False):
             print('Cannot open your training file.\n Error info:' + str(err.args), end = '\n')
             exit(0)
         
-        SP_ref_oxido = cal_aver_SP(img_oxido)
-        SP_ref_sulfuro = cal_aver_SP(img_sulfuro)
+        SP_ref_oxido = cal_avg_SP(img_oxido)
+        SP_ref_sulfuro = cal_avg_SP(img_sulfuro)
         
     else:
         print("choice(use muti SP or single SP) input seems wrong, program ends. I'm sorry about this.\n")
@@ -217,7 +217,30 @@ def classifier_SAM(SP_reference1, SP_reference2, SP_testing):
         class_type = 2    
         
     return class_type
+
+# calculate spectrum angle betweeen two sp. return the angle.
+def cal_sp_angle(sp1, sp2):
+
+	UpSide = 0
+	DownSide1 = 0
+	DownSide2 = 0
+	assert len(sp1) == len(sp2), 'your input two spectrum have different bands. please re-input'
+	deepth = len(sp1)
+	
+    for d in range(deepth):
+        bandValue_sp1 = sp1[d]
+        bandValue_sp2 = sp2[d]
+        
+        UpSide += bandValue_sp1* bandValue_sp2
+        
+        DownSide1 += bandValue_sp1 ** 2
+        DownSide2 += bandValue_sp2 ** 2
     
+    angle = UpSide/ (DownSide1**0.5 * DownSide2**0.5)
+	angle = math.acos(angle) # value range of acos is [0, pi]
+    return angle
+	
+# default no use function.	
 def dataProcess_alg_pass(SP):
     return SP
 
