@@ -61,22 +61,33 @@ if __name__=="__main__":
 
     col_value = df.values
     value_list = list(col_value)
-    fig, axs = plt.subplots(10,4, figsize=(10,5)) # multiple plots in one figure
-    for number in range(40, 80):
+    fig, axs = plt.subplots(20,4, figsize=(10,5)) # multiple plots in one figure
+    for number in range(0, 80):
+    # for number in range(40, 80):
        
         spectrum = col_value[number][xbegin:]
         sample = numpy.array([wavelengths,spectrum]).T
         #print(sample)
 
         hull = qhull(sample)
+
+        c = 0
+        for index in range(len(hull)):
+            if hull[index][0] == name_list[-1]:
+                c = index
+                break
+        hull = hull[:c+1]
         hull = pd.DataFrame(hull,columns=['wavelength','intensity'])
 
 
-        ax = math.floor(number/4)-10
+        ax = math.floor(number/4)
+        # ax = math.floor(number/4)-10
+
+
         # axs[ax][0].plot(wavelengths, spectrum, c='b')
         # axs[ax][0].plot(hull.iloc[:-1]['wavelength'], hull.iloc[:-1]['intensity'], color='k')
 
-        hull_spectrum = hull_to_spectrum(hull[:-1], wavelengths)
+        hull_spectrum = hull_to_spectrum(hull[:], wavelengths)
         spectrum2 = spectrum / hull_spectrum
         axs[ax][number%4].plot(spectrum2)
         # pl.legend()

@@ -69,6 +69,12 @@ if __name__=="__main__":
 
 
         hull = qhull(sample)
+        c = 0
+        for index in range(len(hull)):
+            if hull[index][0] == name_list[-1]:
+                c = index
+                break
+        hull = hull[:c+1]
         list_hull = hull
         hull = pd.DataFrame(hull, columns=['wavelength', 'intensity'])
 
@@ -77,7 +83,7 @@ if __name__=="__main__":
         # axs[0].plot(wavelengths, spectrum, c='b')
         # axs[0].plot(hull.iloc[:-1]['wavelength'], hull.iloc[:-1]['intensity'], color='k')
 
-        hull_spectrum = hull_to_spectrum(hull[:-1], wavelengths)
+        hull_spectrum = hull_to_spectrum(hull[:], wavelengths)
         spectrum2 = spectrum / hull_spectrum
         # axs[1].plot(spectrum2)
 
