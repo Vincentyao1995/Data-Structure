@@ -221,12 +221,12 @@ def classifier_SAM(SP_reference1, SP_reference2, SP_testing):
 # calculate spectrum angle betweeen two sp. return the angle.
 def cal_sp_angle(sp1, sp2):
 
-	UpSide = 0
-	DownSide1 = 0
-	DownSide2 = 0
-	assert len(sp1) == len(sp2), 'your input two spectrum have different bands. please re-input'
-	deepth = len(sp1)
-	
+    UpSide = 0
+    DownSide1 = 0
+    DownSide2 = 0
+    assert len(sp1) == len(sp2), 'your input two spectrum have different bands. please re-input'
+    deepth = len(sp1)
+    
     for d in range(deepth):
         bandValue_sp1 = sp1[d]
         bandValue_sp2 = sp2[d]
@@ -237,9 +237,9 @@ def cal_sp_angle(sp1, sp2):
         DownSide2 += bandValue_sp2 ** 2
     
     angle = UpSide/ (DownSide1**0.5 * DownSide2**0.5)
-	angle = math.acos(angle) # value range of acos is [0, pi]
+    angle = math.acos(angle) # value range of acos is [0, pi]
     return angle
-	
+
 # default no use function.	
 def dataProcess_alg_pass(SP):
     return SP
