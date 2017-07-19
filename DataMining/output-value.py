@@ -1,4 +1,4 @@
-import pandas as pd 
+﻿import pandas as pd 
 import numpy as np
 from pandas import ExcelWriter
 from pandas import ExcelFile
@@ -7,12 +7,12 @@ import matplotlib.pylab as plt
 import matplotlib.animation as animation
 from scipy.interpolate import interp1d
 import csv
-
+#
 def qhull(sample):
     link = lambda a,b: np.concatenate((a,b[1:]))
     edge = lambda a,b: np.concatenate(([a],[b]))
 
-    def dome(sample,base): 
+    def dome(sample,base): #alg
         h, t = base
         dists = np.dot(sample-h, np.dot(((0,-1),(1,0)),(t-h)))
         outer = np.repeat(sample, dists>0, axis=0)
@@ -26,13 +26,15 @@ def qhull(sample):
 
     if len(sample) > 2:
         axis = sample[:,0]
-        base = np.take(sample, [np.argmin(axis), np.argmax(axis)], axis=0)
+        base = np.take(sample, [np.argmin(axis), np.argmax(axis)], axis=0)#get the first and last point [928,0.25][2506,0.36]
         return link(dome(sample, base),
                     dome(sample, base[::-1]))
     else:
         return sample
 
-df = pd.read_excel('Escondida_Combined.xlsx', sheetname='EscondidaMultiSensorDataset')
+filePath = 'data/'
+fileName = 'Escondida.xlsx'
+df = pd.read_excel(filePath + fileName , sheetname='Sheet1')
 
 def normalize(array):
     # return (array - array.mean()) / array.std()
@@ -61,20 +63,20 @@ if __name__=="__main__":
     value_list = list(col_value)
 
     outputfile = list()
-
+    #80 is the total number of files. 80 oxi and sulf pics.
     for number in range(80):
 
-        spectrum = col_value[number][xbegin:]
-        sample = np.array([wavelengths,spectrum]).T
+        spectrum = col_value[number][xbegin:]#reflectance.
+        sample = np.array([wavelengths,spectrum]).T#(928.05,0.252513); There are totally 256 points.
 
 
-        hull = qhull(sample)
+        hull = qhull(sample)#qhull return a hull of this curve, composed by some points of the spectrum. (256 : 29)
         c = 0
-        for index in range(len(hull)):
+        for index in range(len(hull)):#don't know why use this loop, the last point of hull is   [928.080017, 0.25251]  the second last one is 2530,0.xxxx is the point index he found... Or the hull didn't match well?
             if hull[index][0] == name_list[-1]:
                 c = index
                 break
-        hull = hull[:c+1]
+        hull = hull[:c+1] # get the 928-2530 hull. discard points over 2530(do exists.)
         list_hull = hull
         hull = pd.DataFrame(hull, columns=['wavelength', 'intensity'])
 
@@ -83,8 +85,8 @@ if __name__=="__main__":
         # axs[0].plot(wavelengths, spectrum, c='b')
         # axs[0].plot(hull.iloc[:-1]['wavelength'], hull.iloc[:-1]['intensity'], color='k')
 
-        hull_spectrum = hull_to_spectrum(hull[:], wavelengths)
-        spectrum2 = spectrum / hull_spectrum
+        hull_spectrum = hull_to_spectrum(hull[:], wavelengths)#this function convert 26 length hull to a 256 length, just like resample.
+        spectrum2 = spectrum / hull_spectrum#ratio of ori sp to hull.
         # axs[1].plot(spectrum2)
 
         # plt.show()
@@ -116,7 +118,7 @@ if __name__=="__main__":
         training_iteration = 3000
 
         # Construct a  model
-        model = hull_spectrum + three_lorentzian(X, h1,c1,w1,h2,c2,w2,h3,c3,w3)
+        model = hull_spectrum + three_lorentzian(X, h1,c1,w1,h2,c2,w2,h3,c3,w3)# attention, use the code until here. this is where to define model. hull_sp + Gassuian(init_paras). use qhull function to get the hull of a spectrum.
 
         # Minimize squared errors
         cost_function = tf.reduce_sum(tf.pow(model - Y, 2)) #L2 loss
@@ -125,7 +127,7 @@ if __name__=="__main__":
 
         # Initialize variables
         init = tf.global_variables_initializer()
-
+        #attention, this alg use tensorFlow to fit Gaussian and Hull to sp, what kind of alg did paper use? So
         # Launch a graph
         with tf.Session() as sess:
             sess.run(init)
