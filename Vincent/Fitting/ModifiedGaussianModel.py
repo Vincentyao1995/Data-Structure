@@ -1,34 +1,49 @@
-import os
+﻿import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 import spectral.io.envi as envi
 import tensorflow as tf
-
+from scipy import optimize
 
 switch_excel = 0
 switch_envi = 1
 switch_dataFrame = 0
+switch_sp_choice_envi = 0
+switch_mutiBands = 1
 
 #Modified gaussian Model
-def MGM(x,height, center, width, yshift, n = 1):
-	return yshift + height * np.exp( - (x**n - center**n)**2 / (width*2) )
+def MGM(x,height, center, width, yshift, n = -1):
+    if type(x) == tf.Tensor:
+        return yshift + height * tf.exp( - (x**n - center**n)**2 / (width*2) )
+    else:
+        return yshift + height * np.exp( - (x**n - center**n)**2 / (width*2) )
 
-#Multiple MGM, input a para list, then they would use the list to construct muti- Gaussian
-def muti_MGM(x,height,center,width,yshift, n = 1):
-    assert len(height) == len(center) == len(width) and len(yshift) == 1, 'your Muti-MGM paras is not equa, please check out.'
-    
-    for i in range(len(height)):
-        newGassuian = MGM(x,height[i],center[i],width[i],yshift = 0)
-        res += newGassuian
-        if i == len(height) - 1:
-            res += yshift 
+#Multiple MGM, input a para list, then they would use the list to construct muti- Gaussian. list construction: [h1,h2,...,hx, c1,...,cx, w1,...,wx]
+def multi_MGM(x,params, n = 1):
+    assert len(params)%3 == 1, 'your input params has different number of width, height and center'
+    res = 0
+    height = params[:int(len(params)/3)]
+    width = params[int(len(params)/3): 2*int(len(params)/3)]
+    center = params[2*int(len(params)/3):-1]
+    yshift = params[-1]
+    num_Gaussian = int(len(params)/3)
+
+    for i in range(num_Gaussian):
+        newGaussian = MGM(np.array(x),height[i],center[i],width[i],yshift = yshift, n = n)
+        res += newGaussian
     return res
 
 #original gaussian function
-def gaussian(x, height, center_x, width, yshift):
-	return yshift + height * np.exp( - (x - center_x)**2 / (width*2) )
+def gaussian(x, params ):
+    assert len(params) == 4, 'your input params has different number of width, height and center'
+    res = 0
+    height = params[0]
+    width = params[1]
+    center = params[2]
+    yshift = params[3]
+    return yshift + height * np.exp( - (x - center)**2 / (width*2) )
 
 # Convert 30 dimension reflectance to 256D. Methods: interpolate the hull' function using around 30 points, then cal all wavelength points(256). input an dataFrame hull, whose columns = ['wavelength','reflectance'] and the wavelength list of all 256 dimension. return 256 dimension's reflectance. 
 def resample(hull, wavelengths):
@@ -82,9 +97,10 @@ def read_excel(filePath = None, sheetName = 'Sheet1'):
 def get_hull_fromEnvi(filePath = None):
     sp_lib = envi.open(filePath)
     print(sp_lib.names, end = '\n')
-
-    sp_choice = input('input the specturm index you want to fit. (start with 0) \n')
-
+    if switch_sp_choice_envi :
+        sp_choice = input('input the specturm index you want to fit. (start with 0) \n')
+    else:
+        sp_choice = 0
     wavelength = sp_lib.bands.centers
     reflectance = sp_lib.spectra[int(sp_choice)]
     spectrum = np.array([wavelength,reflectance]).T
@@ -107,33 +123,21 @@ def get_hull_fromExcel(filePath =None, sheetName ='Sheet1', sp_index = 0):
     return spectrum, hull
 
 #tensorflow function.
-def fitting_tf(spectrum, hull, fitting_model = MGM):
+def fitting_tf(spectrum, hull, params, fitting_model = MGM):
     # TF graph input
     X = tf.placeholder(tf.float32, shape=[len(spectrum[:,0])])
     Y = tf.placeholder(tf.float32, shape=[len(spectrum[:,1])])
 
-    
-    #height = tf.Variable(0.1, name = 'height')
-    #width = tf.Variable(10.0, name  = 'width')
-    #center = tf.Variable(550.0, name = 'center')
-
-    height = [0.65,0.7,0.75,0.57,0.48,0.34]
-    width = [0.01 for i in range(6)]
-    center = [732,736,740,750,753,759]
-    for i in range(len(height)):
-        params.append(height[i])
-        params.append(center[i])
-        params.append(width[i])
-
+    params_tf = tf.Variable(params)
     # Set parameters
     learning_rate = 0.3
     training_iteration = 3000
 
     # Construct a  model
-    model = hull_spectrum + fitting_model(X,height,center,width, 0, n = -1)# attention, use the code until here. this is where to define model. hull_sp + Gassuian(init_paras). use qhull function to get the hull of a spectrum.
+    model = fitting_model(spectrum[:,0],list(params))
 
     # Minimize squared errors, loss function.
-    loss_function = tf.reduce_sum(tf.pow(model - Y, 2))
+    loss_function = tf.reduce_sum((model - Y)**2)
 
     # optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss_function) #Gradient descent
     optimizer = tf.train.AdamOptimizer(learning_rate).minimize(loss_function)  
@@ -165,16 +169,37 @@ def fitting_tf(spectrum, hull, fitting_model = MGM):
             if (i >= list_hull[j][0] and i < list_hull[j+1][0]):
                 offset.append( (i - hull[j][0]) * (hull[j][1] - hull[j+1][1]) / (hull[j][0] - hull[j+1][0]) + hull[j][1] )
 
-    print (offset + fitting_model(centers,height,center,width,0))
-    outputfile.append(dict({number:( offset + fitting_model(centers, height,center, width))})) 
+    return params_new
 
+#least square fitting function
+def fitting_leastSquare(spectrum, hull, params, fitting_model = multi_MGM):
+
+    errFunc = lambda p, x, y: (y - fitting_model(x, p))**2
+    
+    para_optim, success = optimize.leastsq(errFunc, params, args=(list(spectrum[:,0]), list(spectrum[:,1])), maxfev = 10000)
+    return para_optim
 #plot figures.
-def plot_figures():
-    plt.figure('SP_lib_index03')
-    plt.plot(spectrum[:,0], spectrum[:,1], '-')
-    plt.plot(spectrum[:,0], ratio_continuum)
-    plt.plot(spectrum[:,0], hull)
+def plot_figures(para_optimize, axis_x, axis_y):
+    plt.figure('ori and fitting spectrum')
+    Gaussian_num = int(len(para_optimize)/3)
+    for i in range(Gaussian_num):
+        params_temp = []
+        params_temp.append(para_optimize[i])
+        params_temp.append(para_optimize[Gaussian_num+i])
+        params_temp.append(para_optimize[2*Gaussian_num+i])
+        params_temp.append(para_optimize[-1])
+        plt.plot(axis_x, gaussian(axis_x, params_temp),label = str(params_temp[2]))
+    plt.plot(axis_x, axis_y, lw=2, c='g',label='Bastnas band1 ori')
+    plt.plot(axis_x, multi_MGM( axis_x,para_optimize),lw=0.5, c='r', label='Bastnas band1 fit of 6 MGM')
+
+    diff = multi_MGM( axis_x,para_optimize) - axis_y
+
+    plt.plot(axis_x, diff, label = 'Difference')
+    RMS = float(np.sqrt(np.mean( np.array(diff)**2)))
+    plt.legend()
     plt.show()
+    print(para_optimize,end = '\n')
+    print('RMS:%f\t\t mean RMS(percent): %f ' % ((RMS),((RMS)/ np.mean(axis_y)*100)) )
 
 if __name__ == '__main__':
     filePath = 'data/'
@@ -190,15 +215,42 @@ if __name__ == '__main__':
     ratio_continuum = spectrum[:,1] / hull
     #plot_figures()
     #tensorflow to fitting. input Model u want to use and spectrum band u want to fit.   
-    ABP_bands = [(705.619995,770.429993), (770.429993,833.48999),(833.48999,880.380005),(880.380005,900.349976)]
+    ABP_bands = [(705.619995,770.429993), (770.429993,833.48999),(854.119995,880.380005),(880.380005, 895.549988)]
     ABP_index = []
     spectrum_band = []
     hull_band = []
     for band in ABP_bands:
-        (band_begin,band_end) = (spectrum[:,0].index(band[0]),spectrum[:,0].index(band[1]) )
+        (band_begin,band_end) = (list(spectrum[:,0]).index(band[0]),list(spectrum[:,0]).index(band[1]) )
         ABP_index.append((band_begin,band_end))
         spectrum_band.append( spectrum[band_begin:band_end])
         hull_band.append(hull[band_begin:band_end])
-
-    fitting_tf(spectrum_band[0], hull_band[0], fitting_model = muti_MGM)
     
+    #attention, tensorflow's traning result is nan...... I give up this. and use other method to do fitting.
+    #fitting_tf(spectrum_band[0], hull_band[0], fitting_model = multi_MGM)
+
+    input_band = spectrum_band[0]
+    axis_x = spectrum_band[0][:,0]
+    axis_y = spectrum_band[0][:,1]
+
+    #set initial params.
+    if switch_mutiBands:
+        #height = [0.65,0.7,0.75,0.57,0.48,0.34]
+        height = [0.01 for i in range(6)]
+        width = [5. for i in range(6)]
+        center = [732, 736, 740, 750, 753, 759]
+
+        yshift = [0]
+
+        params = []
+        params.extend(height)
+        params.extend(width)
+        params.extend(center)
+        params.extend(yshift)
+        para_optimize = fitting_leastSquare(input_band, hull_band[0], params, fitting_model = multi_MGM)
+    
+    plot_figures(para_optimize,axis_x, axis_y)
+
+    
+
+    #height 0.01, RMS .000002 / 8; 0.02 .000099; 0.1 .000192 .000712; -0.01, .000618 .002277
+    #height 5, RMS .000108/ 399; 
