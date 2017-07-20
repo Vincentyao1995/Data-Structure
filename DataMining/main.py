@@ -40,15 +40,48 @@ def normalize(array):
     # return (array - array.mean()) / array.std()
     return array
 
+# Whether to set the proportion and how to set 
+def sigmod(x):
+    # return 1.0 / (1 + tf.exp(-x))
+    return x
+
+def plotsigmod(x):
+    # return 1.0 / (1 + np.exp(-x))
+    return x
+
+def gaussian(x, height, center, width):
+    return height*tf.exp(-1.0*(x - center)**2/(2*width**2)) 
+
 # Use lorentzian function 
 def lorentzian(x, height, center, width):
     """ defined such that height is the height when x==x0 """
     halfWSquared = (width/2.)**2
     return (height * halfWSquared) / ((x - center)**2 + halfWSquared)
 
+def gauss_loren(x, height, center, width, rate):
+    sigmodrate = sigmod(rate)
+    return sigmodrate * gaussian(x, height, center, width) + (1-sigmodrate) * lorentzian(x, height, center, width)
+    # return rate * gaussian(x, height, center, width) + (1-rate) * lorentzian(x, height, center, width)
+
+def three_combinedfunc(x,h1,c1,w1,h2,c2,w2,h3,c3,w3,r):
+    return (gauss_loren(x,h1,c1,w1,r)+gauss_loren(x,h2,c2,w2,r)+gauss_loren(x,h3,c3,w3,r))
+
 # Use the sum of three lorentzian function
 def three_lorentzian(x, h1,c1,w1,h2,c2,w2,h3,c3,w3):
     return (lorentzian(x,h1,c1,w1)+lorentzian(x,h2,c2,w2)+lorentzian(x,h3,c3,w3))
+
+def three_gaussian(x, h1,c1,w1,h2,c2,w2,h3,c3,w3):
+    return (gaussian(x,h1,c1,w1)+gaussian(x,h2,c2,w2)+gaussian(x,h3,c3,w3))
+
+def plotgaussian(x, height, center, width):
+    return height*np.exp(-1.0*(x - center)**2/(2*width**2)) 
+    # Use different rate to get the more precise values.
+def plotgauss_loren(x, height, center, width, rate):
+    sigmodrate = plotsigmod(rate)
+    return sigmodrate * plotgaussian(x, height, center, width) + (1-sigmodrate) * lorentzian(x, height, center, width)
+
+def plotthree_combinedfunc(x,h1,c1,w1,h2,c2,w2,h3,c3,w3,r):
+    return (plotgauss_loren(x,h1,c1,w1,r)+plotgauss_loren(x,h2,c2,w2,r)+plotgauss_loren(x,h3,c3,w3,r))
 
 # To interp the envelop
 def hull_to_spectrum(hull, wavelengths):
@@ -58,11 +91,11 @@ def hull_to_spectrum(hull, wavelengths):
 # Training the spectrum to fit the curves with tensorflow
 def training(pwavelengths, pspectrum, phull_spectrum, pointsarray):
 
-    # the ranges of the segment with two points and the center
+    # the ranges of the segment with two points and the center, it is near the center parts.
     pcenter, pbegin, pend = pointsarray
-    pc1 = ((pwavelengths[pbegin] + pwavelengths[pcenter]) / 2.).astype(np.float32)
+    pc1 = ((pwavelengths[pbegin] + 2 * pwavelengths[pcenter]) / 3.).astype(np.float32)
     pc2 = pwavelengths[pcenter].astype(np.float32)
-    pc3 = ((pwavelengths[pcenter] + pwavelengths[pend]) / 2.).astype(np.float32)
+    pc3 = ((2 * pwavelengths[pcenter] + pwavelengths[pend]) / 3.).astype(np.float32)
 
     print (pc1,pc2,pc3)
 
@@ -90,14 +123,15 @@ def training(pwavelengths, pspectrum, phull_spectrum, pointsarray):
     h3=tf.Variable(0.,name="h3")
     c3=tf.Variable(tf.convert_to_tensor(pc3,dtype=tf.float32) ,name="c3")
     w3=tf.Variable(5.0,name="w3")
-    params = [h1,c1,w1,h2,c2,w2,h3,c3,w3]
+    r =tf.Variable(0.,name="rate")
+    params = [h1,c1,w1,h2,c2,w2,h3,c3,w3,r]
 
     # # Set parameters
     learning_rate = 0.1
-    training_iteration = 100
+    training_iteration = 3000
 
     # # Construct a  model
-    model = hull_spectrum + three_lorentzian(X, h1,c1,w1,h2,c2,w2,h3,c3,w3)
+    model = hull_spectrum + three_combinedfunc(X, h1,c1,w1,h2,c2,w2,h3,c3,w3,r)
 
     # # Minimize squared errors
     cost_function = tf.reduce_sum(tf.pow(model - Y, 2)) #L2 loss
@@ -106,6 +140,50 @@ def training(pwavelengths, pspectrum, phull_spectrum, pointsarray):
 
     # Initialize variables
     init = tf.global_variables_initializer()
+
+    def display(iteration, display_step):
+        # Display logs per iteration step
+        if iteration % display_step == 0:
+            _h1,_c1,_w1,_h2,_c2,_w2,_h3,_c3,_w3,_r = sess.run(params, feed_dict={X: wavelengths, Y: spectrum})
+
+            print('Iteration: %04d, cost=%0.9f. [h1,c1,w1]: %0.3f,%0.3f,%0.3f [h2,c2,w2]: %0.3f,%0.3f,%0.3f [h3,c3,w3]: %0.3f,%0.3f,%0.3f rate: %0.3f sigmodrate: %0.3f'  % (
+                iteration + 1, 
+                training_cost,
+                _h1,_c1,_w1,_h2,_c2,_w2,_h3,_c3,_w3,_r,plotsigmod(_r)
+            ))
+
+        # Display fitted spectrum occasionally
+        if iteration % 500 == 0:
+            plt.figure()
+            plt.plot(wavelengths, spectrum, c='k', label='observed spectrum')
+            plt.plot(wavelengths, hull_spectrum + plotthree_combinedfunc(wavelengths, _h1,_c1,_w1,_h2,_c2,_w2,_h3,_c3,_w3,_r), c='r', label='Fitted line')
+            plt.legend()
+            plt.show()
+
+    def printParmas():
+        _h1,_c1,_w1,_h2,_c2,_w2,_h3,_c3,_w3,_r = sess.run(params, feed_dict={X: wavelengths, Y: spectrum})
+        print('Training completed: cost=%0.9f. [h1,c1,w1]: %0.3f,%0.3f,%0.3f [h2,c2,w2]: %0.3f,%0.3f,%0.3f [h3,c3,w3]: %0.3f,%0.3f,%0.3f rate: %0.3f sigmodrate: %0.3f' % (
+            training_cost,
+            _h1,_c1,_w1,_h2,_c2,_w2,_h3,_c3,_w3,_r,plotsigmod(_r)
+        ))
+        return _h1,_c1,_w1,_h2,_c2,_w2,_h3,_c3,_w3,_r
+
+    def finalShow():
+        plt.figure()
+        _h1,_c1,_w1,_h2,_c2,_w2,_h3,_c3,_w3,_r = sess.run(params, feed_dict={X: wavelengths, Y: spectrum})
+        # _h1,_c1,_w1,_h2,_c2,_w2,_h3,_c3,_w3,_r = printParmas()
+        plt.plot(wavelengths, spectrum, c='k', label='observed spectrum')
+        plt.plot(wavelengths, hull_spectrum + plotthree_combinedfunc(wavelengths, _h1,_c1,_w1,_h2,_c2,_w2,_h3,_c3,_w3,_r), c='r', label='Fitted line')
+        # Show the three functions
+        plt.plot(wavelengths,hull_spectrum + plotgauss_loren(wavelengths, _h1, _c1, _w1, _r), linewidth=2, label='Function1')
+        plt.plot(wavelengths,hull_spectrum + plotgauss_loren(wavelengths, _h2, _c2, _w2, _r), linewidth=2, label='Function2')
+        plt.plot(wavelengths,hull_spectrum + plotgauss_loren(wavelengths, _h3, _c3, _w3, _r), linewidth=2, label='Function3')
+
+        # display errors and find the most influence points
+        # plt.figure()
+        # plt.plot(wavelengths, spectrum - hull_spectrum - plotthree_combinedfunc(wavelengths, _h1,_c1,_w1,_h2,_c2,_w2,_h3,_c3,_w3,_r), label='Error')
+        # displaymeanval(wavelengths, spectrum - hull_spectrum -plotthree_combinedfunc(wavelengths, _h1,_c1,_w1,_h2,_c2,_w2,_h3,_c3,_w3,_r))
+        plt.legend()
 
     # Launch a graph
     with tf.Session() as sess:
@@ -116,37 +194,18 @@ def training(pwavelengths, pspectrum, phull_spectrum, pointsarray):
         for iteration in range(training_iteration):
             training_cost, _ = sess.run([cost_function, optimizer], feed_dict={X: wavelengths, Y: spectrum})
 
-            # Display logs per iteration step
-            # if iteration % display_step == 0:
-            #     _h1,_c1,_w1,_h2,_c2,_w2,_h3,_c3,_w3 = sess.run(params, feed_dict={X: wavelengths, Y: spectrum})
-
-            #     print('Iteration: %04d, cost=%0.9f. [h1,c1,w1]: %0.3f,%0.3f,%0.3f [h2,c2,w2]: %0.3f,%0.3f,%0.3f [h3,c3,w3]: %0.3f,%0.3f,%0.3f' % (
-            #         iteration + 1, 
-            #         training_cost,
-            #         _h1,_c1,_w1,_h2,_c2,_w2,_h3,_c3,_w3
-            #     ))
-
-            # Display fitted spectrum occasionally
-            # if iteration % 500 == 0:
-            #     plt.figure()
-            #     plt.plot(wavelengths, spectrum, c='k', label='observed spectrum')
-            #     plt.plot(wavelengths, hull_spectrum + three_lorentzian(wavelengths, _h1,_c1,_w1,_h2,_c2,_w2,_h3,_c3,_w3), c='r', label='Fitted line')
-            #     plt.legend()
-            #     plt.show()
+            # display(iteration, display_step)
+            
             
         # Final parameters
-        _h1,_c1,_w1,_h2,_c2,_w2,_h3,_c3,_w3 = sess.run(params, feed_dict={X: wavelengths, Y: spectrum})
-        print('Training completed: cost=%0.9f. [h1,c1,w1]: %0.3f,%0.3f,%0.3f [h2,c2,w2]: %0.3f,%0.3f,%0.3f [h3,c3,w3]: %0.3f,%0.3f,%0.3f' % (
-            training_cost,
-            _h1,_c1,_w1,_h2,_c2,_w2,_h3,_c3,_w3
-        ))
-    
-    # Final plot
-    # plt.plot(wavelengths, spectrum, c='k', label='observed spectrum')
-    # plt.plot(wavelengths, hull_spectrum + three_lorentzian(wavelengths, _h1,_c1,_w1,_h2,_c2,_w2,_h3,_c3,_w3), c='r', label='Fitted line')
-    # plt.legend()
+        _h1,_c1,_w1,_h2,_c2,_w2,_h3,_c3,_w3,_r = printParmas()
 
-    return np.array([wavelengths, hull_spectrum + three_lorentzian(wavelengths, _h1,_c1,_w1,_h2,_c2,_w2,_h3,_c3,_w3)])
+        # Show the final plot
+        finalShow()
+    
+
+
+    return np.array([wavelengths, hull_spectrum + plotthree_combinedfunc(wavelengths, _h1,_c1,_w1,_h2,_c2,_w2,_h3,_c3,_w3,_r)])
 
 # smoothing to find the real peaks of the original spectrum
 def findpeak(spectrum):
@@ -168,7 +227,7 @@ def findpeak(spectrum):
     plt.plot(hull.iloc[:-1]['wavelength'], hull.iloc[:-1]['intensity'], color='k')
 
 # display those peaks points and related points and return the values with the removed spectrum
-def displaymeanval(spectrum2):
+def displaymeanval(wavelengths, spectrum2):
     spectrum2 = signal.savgol_filter(spectrum2,11,4)
     meanval = spectrum2.mean()
     plt.figure()
@@ -241,7 +300,7 @@ def showOriginal(wavelengths, spectrum, spectrum2):
 
 # display the divide region curves
 def showDivideRegion():
-    pointsarray = displaymeanval(spectrum2)
+    pointsarray = displaymeanval(wavelengths,spectrum2)
 
     plt.figure()
     plt.plot(wavelengths, spectrum, c='b')
@@ -251,12 +310,14 @@ def showDivideRegion():
         # plt.plot(wavelengths[pbegin : pend+1],spectrum2[pbegin : pend+1], wavelengths[pbegin : pend+1], spectrum[pbegin : pend+1])
         plt.plot( wavelengths[pbegin : pend+1], spectrum[pbegin : pend+1], linewidth=3)
 
+    plt.show()
+
 # display the fitting region curves
 def showFittingRegion():
     results = list()
-    pointsarrays = displaymeanval(spectrum2)
-    for index in np.arange(len(pointsarrays)):
-    # for index in np.arange(1,2):
+    pointsarrays = displaymeanval(wavelengths, spectrum2)
+    # for index in np.arange(len(pointsarrays)):
+    for index in np.arange(0,1):
         pointsarray = pointsarrays[index]
         # print (pc1,pc2,pc3)
         results.append(training(wavelengths, spectrum, hull_spectrum, pointsarray))
@@ -306,8 +367,14 @@ if __name__=="__main__":
 # Results3: 0.000129 -0.014,2163.884,20.079; -0.052,2203.707,35.701; -0.011,2249.93,35.282
 
     
-    # plt.show()
+    plt.show()
 
 
 # with 3000 iteration: the 42th errors
 # 0.0013; 0.00027; 0.00068; 0.0000025; 0; 0.000017;0.00014
+
+
+# Record:
+# 当为r直接相加，并且训练3000次时：其实两千次就可以了，最后rate是0.992
+# 当r为sigmod之后进行转换到0-1之间时：其实1500次就可以了，最后sigmodrate是0.998
+# 说明还是高斯函数占据主导？
