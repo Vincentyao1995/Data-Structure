@@ -172,13 +172,13 @@ def fitting_tf(spectrum, hull, params, fitting_model = MGM):
     return params_new
 
 #least square fitting function
-def fitting_leastSquare(spectrum, hull, params, fitting_model = multi_MGM):
+def fitting_leastSquare(spectrum, params, fitting_model = multi_MGM, hull = 0):
 
     errFunc = lambda p, x, y: (y - fitting_model(x, p))**2
     
     para_optim, success = optimize.leastsq(errFunc, params, args=(list(spectrum[:,0]), list(spectrum[:,1])), maxfev = 10000)
     return para_optim
-#plot figures.
+#plot figures. Gaussian fitting curve and discret gaussians.
 def plot_figures(para_optimize, axis_x, axis_y):
     plt.figure('ori and fitting spectrum')
     Gaussian_num = int(len(para_optimize)/3)
@@ -201,6 +201,24 @@ def plot_figures(para_optimize, axis_x, axis_y):
     print(para_optimize,end = '\n')
     print('RMS:%f\t\t mean RMS(percent): %f ' % ((RMS),((RMS)/ np.mean(axis_y)*100)) )
 
+def output_params(params_initial,params_optimize,axis_x,axis_y, band_index = 0):
+    filePath = 'data/'
+    file_out = open(filePath + 'bastnas_gau_params.txt','a')
+    file_out.write('band%d: %fnm - %fnm\n' % (band_index, axis_x[0], axis_x[-1]))
+    file_out.write('initial params: \n')
+    for item in params_initial:
+        file_out.write(str(item) + '\t')
+    file_out.write('\noptimize params: \n')
+    for item in params_optimize:
+        file_out.write(str(item) + '\t')
+
+    diff = multi_MGM( axis_x,para_optimize) - axis_y
+    RMS = float(np.sqrt(np.mean( np.array(diff)**2)))
+    file_out.write('\nRMS: %f  percent: %f \n\n' % (RMS,(RMS)/ np.mean(axis_y)*100) )
+
+    file_out.close()
+    return 1
+    
 if __name__ == '__main__':
     filePath = 'data/'
     
@@ -213,8 +231,8 @@ if __name__ == '__main__':
         spectrum, hull = get_hull_fromEnvi(filePath = filePath + fileName)
     #cal the ratio (continuum removal.)
     ratio_continuum = spectrum[:,1] / hull
-    #plot_figures()
-    #tensorflow to fitting. input Model u want to use and spectrum band u want to fit.   
+
+    #Below is an example how to use ModifiedGaussianModel.py to get the optimize parameters.
     ABP_bands = [(705.619995,770.429993), (770.429993,833.48999),(854.119995,880.380005),(880.380005, 895.549988)]
     ABP_index = []
     spectrum_band = []
@@ -227,17 +245,18 @@ if __name__ == '__main__':
     
     #attention, tensorflow's traning result is nan...... I give up this. and use other method to do fitting.
     #fitting_tf(spectrum_band[0], hull_band[0], fitting_model = multi_MGM)
-
-    input_band = spectrum_band[0]
-    axis_x = spectrum_band[0][:,0]
-    axis_y = spectrum_band[0][:,1]
+    band_index = 3
+    input_band = spectrum_band[band_index]
+    axis_x = spectrum_band[band_index][:,0]
+    axis_y = spectrum_band[band_index][:,1]
 
     #set initial params.
     if switch_mutiBands:
-        #height = [0.65,0.7,0.75,0.57,0.48,0.34]
-        height = [0.01 for i in range(6)]
-        width = [5. for i in range(6)]
-        center = [732, 736, 740, 750, 753, 759]
+
+        center = [889]
+        height = [0.2 for i in range(len(center))]
+        width = [5. for i in range(len(center))]
+        
 
         yshift = [0]
 
@@ -246,8 +265,8 @@ if __name__ == '__main__':
         params.extend(width)
         params.extend(center)
         params.extend(yshift)
-        para_optimize = fitting_leastSquare(input_band, hull_band[0], params, fitting_model = multi_MGM)
-    
+        para_optimize = fitting_leastSquare(input_band, params, fitting_model = multi_MGM, hull = hull_band[0])
+        #output_params(params, para_optimize, axis_x ,axis_y, band_index = band_index + 1)
     plot_figures(para_optimize,axis_x, axis_y)
 
     
