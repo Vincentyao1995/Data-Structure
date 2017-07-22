@@ -176,7 +176,7 @@ def fitting_leastSquare(spectrum, params, fitting_model = multi_MGM, hull = 0):
 
     errFunc = lambda p, x, y: (y - fitting_model(x, p))**2
     
-    para_optim, success = optimize.leastsq(errFunc, params, args=(list(spectrum[:,0]), list(spectrum[:,1])), maxfev = 10000)
+    para_optim, success = optimize.leastsq(errFunc, params, args=(list(spectrum[:,0]), list(spectrum[:,1])), maxfev = 20000)
     return para_optim
 #plot figures. Gaussian fitting curve and discret gaussians.
 def plot_figures(para_optimize, axis_x, axis_y):

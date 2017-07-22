@@ -4,6 +4,7 @@ import os
 import ModifiedGaussianModel as MGM
 import numpy as np
 import matplotlib.pyplot as plt 
+from scipy import optimize
 
 def savitzky_golay(y, window_size, order, deriv=0, rate=1):
     r"""Smooth (and optionally differentiate) data with a Savitzky-Golay filter.
@@ -78,7 +79,7 @@ def savitzky_golay(y, window_size, order, deriv=0, rate=1):
     return np.convolve( m[::-1], y, mode='valid')
 
 # compute para table of the spectrum and return it. input a spectrum?
-def Gaussian(spectrum, params_reference):
+def Gaussian(spectrum, params_reference, plotFileName = None):
     # divide the whole spectrum into 4 band, extract 4 ABP band in VNIR, and output these 4 bands' Gaussian params. 
     # params_reference provide the band info about start, end in the spectrum....
     params_testing = {}
@@ -88,21 +89,23 @@ def Gaussian(spectrum, params_reference):
         index_begin = -1
         params_init = params_reference[band]['params_initial']
         
-        #find the spectrum band in pixels' specturm, because reference sp has different sp resolution with testing sp.
-        for i in range(len(spectrum[:,0])):
-            if spectrum[:,0][i] <= params_reference[band]['begin'] and spectrum[:,0][i+1] >= params_reference[band]['begin']:
-                index_begin = i
-            elif spectrum[:,0][i] <= params_reference[band]['end'] and spectrum[:,0][i+1] >= params_reference[band]['end']:
-                index_end = i
-        if index_begin != -1 and index_end != -1:
-            axis_x = spectrum[:,0][index_begin:index_end]
-            axis_y = spectrum[:,1][index_begin:index_end]
-            axis_y_smooth = savitzky_golay(axis_y, 51, 3) # window size 51, polynomial order 3
-            plt.plot(axis_x, axis_y)
-            plt.plot(axis_x, axis_y_smooth)
-            spectrum_band = np.array([axis_x, axis_y_smoooth]).T
-            params_testing[band] = MGM.fitting_leastSquare(spectrum_band, params_init)
-            MGM.plot_figures(params_testing[band],spectrum[:,0][index_begin:index_end], spectrum[:,1][index_begin:index_end])
+        spectrum_band = choose_band(spectrum, params_reference, band)
+        #axis_y_smooth = savitzky_golay(spectrum_band[:,1], 11, 3) # window size 51, polynomial order 3
+        axis_x = list(spectrum_band[:,0])
+        axis_y = list(spectrum_band[:,1])
+        params_testing[band] = MGM.fitting_leastSquare(spectrum_band, params_init)
+        axis_y_fitting = MGM.multi_MGM(spectrum_band[:,0],list(params_testing[band]))
+        index_begin = -1
+        index_end = -1
+        if plotFileName != None:
+            plt.plot(axis_x, axis_y, lw = 2, c = 'green',label = 'oringinal curve')
+            #plt.plot(axis_x, axis_y_smooth, lw = 1.5, c = 'yellow', label = 'smooth curve')
+            plt.plot(axis_x,axis_y_fitting, lw = 1, c = 'red', label = 'fitting curve')
+            fileName = plotFileName
+            plt.legend()
+            fileName += (str(band) + '.png')
+            plt.savefig('data/fitting_res_REE/' + fileName)
+            plt.close()
     return params_testing
 
 # reference is standard specturm in the lib. load these sp of all minerals to be tested.
@@ -173,7 +176,19 @@ def output_proxy(proxy_mineral, image_name):
             file_out.write('\t%f\t' % proxy_mineral[key])
         file_out.write('\n')
         file_out.close()
-        
+
+# match similarity
+def match_sim(params_ref, params_testing):
+
+    params_ref_temp = []
+    params_testing_temp = []
+    for key in sorted(params_ref.keys()):
+        params_ref_temp.extend(list(params_ref[key]['params_optimize']))
+        params_testing_temp.extend(list(params_testing[key])) 
+    sim = np.corrcoef(params_ref_temp, params_testing_temp)
+    return sim
+
+# this function cal the similarity between two Gaussian para lists. Input the image file and sum all pixels' sim and got a proxy. return this proxy value.
 def cal_proxy_paraTable(fileName_image = 'unKnown.hdr', fileName_ref = 'unKnow2.hdr'):
     #1. Read the pic file and got the sp of this file. Also read params of standard curve.
     filePath = 'data/VNIR/rocks/'
@@ -188,6 +203,7 @@ def cal_proxy_paraTable(fileName_image = 'unKnown.hdr', fileName_ref = 'unKnow2.
     count_bg = 0
     for i in range(width):
         for j in range(height):
+            print('pixel %d, %d processing, total: %d\n' % (i,j, width*height))
             ref_pixel = image_testing[i,j]
             band_pixel = image_testing.bands.centers
             sp_pixel = np.array([band_pixel, ref_pixel]).T
@@ -195,8 +211,15 @@ def cal_proxy_paraTable(fileName_image = 'unKnown.hdr', fileName_ref = 'unKnow2.
             if ta.exclude_BG(ref_pixel):
                 count_bg += 1
                 continue
-            # 2. got the testing pixels' para table. 
-            params_testing = Gaussian(sp_pixel, params_reference)
+            # 2. got the testing pixels' para table.  #2,4 2,5 2,6 is three ree pixel. 3,1 is noise pixel
+            if i == 5 and j == 1:
+                fileName_output = 'pixel_x2y6'
+                params_testing = Gaussian(sp_pixel, params_reference,plotFileName = fileName_output)
+            elif i == 0 and j == 2:
+                fileName_output = 'pixel_x3y1'
+                params_testing = Gaussian(sp_pixel, params_reference,plotFileName = fileName_output)
+            else:
+                params_testing = Gaussian(sp_pixel, params_reference)
             
             # 3. Match the spectrum of reference and got sim of this two specturm( from table). Attention: didn't match multiple minerals yet, only get one. So 4.5. is changed from the initial code.(Exp7)
             sim = match_sim(params_reference, params_testing)
@@ -211,11 +234,82 @@ def cal_proxy_paraTable(fileName_image = 'unKnown.hdr', fileName_ref = 'unKnow2.
     #output_proxy(proxyValue, fileName_image)
     return proxyValue
 
+# this function compute scaling, input listA and listB, and return the scaling(0-1) (s*listA = listB) A is fitting list of standard spectrum library
+def cal_scaling(listA, listB):
+    scaling = 0.
+    errFunc = lambda s, x,y: (y- s* x)**2
+    scaling, success = optimize.leastsq(errFunc, scaling, args=(listA,listB), maxfev = 20000) 
+    return scaling
+
+# input the whole spectrum, and params_reference(a dict) read from reference Gaussian parameters .txt file and the band u want to choose, return the band's spectrum
+def choose_band(spectrum, params_reference, band):
+
+    index_end = -1 
+    index_begin = -1
+        
+    #find the spectrum band in pixels' specturm, because reference sp has different sp resolution with testing sp.
+    for i in range(len(spectrum[:,0])):
+        if spectrum[:,0][i] <= params_reference[band]['begin'] and spectrum[:,0][i+1] >= params_reference[band]['begin']:
+            index_begin = i
+        elif spectrum[:,0][i] <= params_reference[band]['end'] and spectrum[:,0][i+1] >= params_reference[band]['end']:
+            index_end = i
+    if index_begin != -1 and index_end != -1:
+        axis_x = spectrum[:,0][index_begin:index_end]
+        axis_y = spectrum[:,1][index_begin:index_end]
+        #axis_y_smooth = savitzky_golay(axis_y, 11, 3) # window size 51, polynomial order 3
+        spectrum_band = np.array([axis_x, axis_y]).T
+        return spectrum_band
+
 #check_all could compute proxy values of all images, including minerals in 'file_Name_ref'. output the res to proxy_mineral autoly
 def check_all():
-    name_images = [name for name in os.listdir('data/VNIR/rocks/') if name.endswith('.hdr')]
-    for name in name_images:
-        cal_proxy_paraTable(fileName_image = name, fileName_ref = 'Unknow2.hdf')
+    filePath = 'data/VNIR/ASCII_VNIR/'
+    filePath_image_temp = 'data/VNIR/rocks/VNIR_sample1_18points.hdr'
+    wavelength_pixel = ta.load_image(filePath = filePath_image_temp).bands.centers
+    name_images = [name for name in os.listdir(filePath) if name.endswith('.txt')]
+    params_reference = load_reference('data/VNIR/rocks/' + 'bastnas_gau_params.txt')
+
+    #image loop, process all images.
+    for name in sorted(name_images):
+        print('image %s processing!' % name)
+        # open the txt file and got all pixels' spectrum
+        image_file = open(filePath + name)
+        lines = [line for line in image_file]
+        # got the pixels' spectrum, ignore the header of file.
+        fileName_output = 'NoneSmoothGauScaling_' + name.split('_')[-1]
+        file_output = open(fileName_output , 'w')
+        file_output.write('NoneSmooth Gaussian Scaling band 1-4(Bastnas)\n')
+        #pixel loop, process all pixels in image.(through a ROI ASCII file)
+        for line_index in range(len(lines)):
+            print('sample%d processing: %f\n' % ( name_images.index(name)+1 , line_index/len(lines) ))
+            
+            line = lines[line_index]
+            # ignore the header info in image(.txt file)
+            if line_index <= 7 or len(line.split()) < 100:
+                continue
+            #got useful info(pixels' spectrum) from txt. Pixels' coordinate and its reflectance and wavelength
+            ID = line.split()[0] # ID, x, y ,spectrum
+            (x, y) = (int(line.split()[1]), int(line.split()[2]))
+            ref_pixel = list(line.split()[3:])
+            ref_pixel = [float(i) for i in ref_pixel]
+            sp_pixel = np.array([wavelength_pixel, ref_pixel]).T
+            scaling_pixel = {}
+            
+            #band loop, compute the scaling in different band separately.
+            for band in sorted(params_reference.keys()):
+                spectrum_band = choose_band(sp_pixel, params_reference, band)
+                axis_x, axis_y = list(spectrum_band[:,0]),list(spectrum_band[:,1])
+
+                #None- smooth Gaussian scaling match: 
+                scaling = cal_scaling(MGM.multi_MGM(axis_x, list(params_reference[band]['params_optimize'])), axis_y)
+                scaling_pixel.setdefault(band,scaling)
+
+            #write the result. ouput scaling of all pixels into one file. Then use excel to do analysis work
+            file_output.write('%d \t %d \t ' % (x,y))
+            for band in scaling_pixel:
+                file_output.write('%f\t' % scaling_pixel[band])
+            file_output.write('\n')
+
+        file_output.close()
 
 #read the output file of check_all(), then draw scatter plot of minerals' amount and minerals' proxy value		
 def plot(minerals_amount, proxy_file):
@@ -224,16 +318,18 @@ def plot(minerals_amount, proxy_file):
     
     
 def main():
-    #check_all()
-    cal_proxy_paraTable(fileName_image = 'VNIR_sample1_18points.hdr',fileName_ref = 'bastnas_gau_params.txt')
+    check_all()
+    proxyValue = cal_proxy_paraTable(fileName_image = 'VNIR_sample1_18points.hdr',fileName_ref = 'bastnas_gau_params.txt')
+    print(proxyValue)
+    quit()
     filePath = 'data/'
     output_name = 'proxy_mineral.txt'
     fileName_amount = 'minerals_amount.txt'
-    minerals_amount = load_amount(filePath + fileName_amount)
-    plot(minerals_amount, output_name)
+    #minerals_amount = load_amount(filePath + fileName_amount)
+    #plot(minerals_amount, output_name)
 
 if __name__ == '__main__':
-    main()
+    check_all()
 
 
 
