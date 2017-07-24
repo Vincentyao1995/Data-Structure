@@ -1,10 +1,10 @@
-﻿import proxy 
-import test_algorithm as ta
+﻿import test_algorithm as ta
 import os
 import ModifiedGaussianModel as MGM
 import numpy as np
 import matplotlib.pyplot as plt 
 from scipy import optimize
+import pre_processing_mineral as ppm
 
 def savitzky_golay(y, window_size, order, deriv=0, rate=1):
     r"""Smooth (and optionally differentiate) data with a Savitzky-Golay filter.
@@ -223,7 +223,7 @@ def cal_proxy_paraTable(fileName_image = 'unKnown.hdr', fileName_ref = 'unKnow2.
             
             # 3. Match the spectrum of reference and got sim of this two specturm( from table). Attention: didn't match multiple minerals yet, only get one. So 4.5. is changed from the initial code.(Exp7)
             sim = match_sim(params_reference, params_testing)
-            #attention, code here, time to output params, and see the res of pixel sp' fitting. And find the scaling.
+
             # 4. use the sim and give a percent to proxy
             #proxy_mineral[key] += sim
             proxyValue += sim
@@ -260,9 +260,10 @@ def choose_band(spectrum, params_reference, band):
         spectrum_band = np.array([axis_x, axis_y]).T
         return spectrum_band
 
-#check_all could compute proxy values of all images, including minerals in 'file_Name_ref'. output the res to proxy_mineral autoly
+#check_all() check all the images, and all the pixels in them. Output every pixels' proxy value(Maybe scaling, or similarity computed using other alg.) into txt files
 def check_all():
     filePath = 'data/VNIR/ASCII_VNIR/'
+    filePath = 'data/VNIR/'
     filePath_image_temp = 'data/VNIR/rocks/VNIR_sample1_18points.hdr'
     wavelength_pixel = ta.load_image(filePath = filePath_image_temp).bands.centers
     name_images = [name for name in os.listdir(filePath) if name.endswith('.txt')]
@@ -275,9 +276,9 @@ def check_all():
         image_file = open(filePath + name)
         lines = [line for line in image_file]
         # got the pixels' spectrum, ignore the header of file.
-        fileName_output = 'NoneSmoothGauScaling_' + name.split('_')[-1]
+        fileName_output = 'Originalnon-smoothScaling_' + name.split('_')[-1]
         file_output = open(fileName_output , 'w')
-        file_output.write('NoneSmooth Gaussian Scaling band 1-4(Bastnas)\n')
+        file_output.write('Original non-smooth Scaling band 1-4(Bastnas)\n')
         #pixel loop, process all pixels in image.(through a ROI ASCII file)
         for line_index in range(len(lines)):
             print('sample%d processing: %f\n' % ( name_images.index(name)+1 , line_index/len(lines) ))
@@ -298,9 +299,15 @@ def check_all():
             for band in sorted(params_reference.keys()):
                 spectrum_band = choose_band(sp_pixel, params_reference, band)
                 axis_x, axis_y = list(spectrum_band[:,0]),list(spectrum_band[:,1])
+                
+                #cal the sim between reference and sp_pixel.
+                reference_info = params_reference[band]
+                reference_info = list(reference_info)
+                similarity = ppm.cal_similarity(reference_info, sp_pixel)
 
                 #None- smooth Gaussian scaling match: 
                 scaling = cal_scaling(MGM.multi_MGM(axis_x, list(params_reference[band]['params_optimize'])), axis_y)
+                #scaling = cal_scaling(axis_y, ori_lib_spectrum_band)
                 scaling_pixel.setdefault(band,scaling)
 
             #write the result. ouput scaling of all pixels into one file. Then use excel to do analysis work
@@ -311,11 +318,6 @@ def check_all():
 
         file_output.close()
 
-#read the output file of check_all(), then draw scatter plot of minerals' amount and minerals' proxy value		
-def plot(minerals_amount, proxy_file):
-    #attention, debugging here.
-    pass
-    
     
 def main():
     check_all()
@@ -326,7 +328,7 @@ def main():
     output_name = 'proxy_mineral.txt'
     fileName_amount = 'minerals_amount.txt'
     #minerals_amount = load_amount(filePath + fileName_amount)
-    #plot(minerals_amount, output_name)
+
 
 if __name__ == '__main__':
     check_all()
