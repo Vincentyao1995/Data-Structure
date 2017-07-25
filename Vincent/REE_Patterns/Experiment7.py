@@ -6,6 +6,11 @@ import matplotlib.pyplot as plt
 from scipy import optimize
 import pre_processing_mineral as ppm
 
+switch_test = 1
+switch_smooth = 1
+depth_threshold = 0.008
+method = 'modeling' # or general(none)
+
 def savitzky_golay(y, window_size, order, deriv=0, rate=1):
     r"""Smooth (and optionally differentiate) data with a Savitzky-Golay filter.
     The Savitzky-Golay filter removes high frequency noise from data.
@@ -108,7 +113,7 @@ def Gaussian(spectrum, params_reference, plotFileName = None):
             plt.close()
     return params_testing
 
-# reference is standard specturm in the lib. load these sp of all minerals to be tested.
+# input a filePath and open this file, then read txt file info dict. return a dict containing initial params, optimize paras, in all bands.
 def load_reference(filePath):
     file = open(filePath , 'r')
     lines = [line for line in file]
@@ -263,7 +268,8 @@ def choose_band(spectrum, params_reference, band):
 #check_all() check all the images, and all the pixels in them. Output every pixels' proxy value(Maybe scaling, or similarity computed using other alg.) into txt files
 def check_all():
     filePath = 'data/VNIR/ASCII_VNIR/'
-    filePath = 'data/VNIR/'
+    if switch_test ==1:
+        filePath = 'data/VNIR/' # attention, this is the switch of test 18,25 points.
     filePath_image_temp = 'data/VNIR/rocks/VNIR_sample1_18points.hdr'
     wavelength_pixel = ta.load_image(filePath = filePath_image_temp).bands.centers
     name_images = [name for name in os.listdir(filePath) if name.endswith('.txt')]
@@ -276,9 +282,12 @@ def check_all():
         image_file = open(filePath + name)
         lines = [line for line in image_file]
         # got the pixels' spectrum, ignore the header of file.
-        fileName_output = 'Originalnon-smoothScaling_' + name.split('_')[-1]
+        if switch_smooth:
+            fileName_output = 'Gaussian_Smooth_scaling_' + name.split('_')[-1]
+        else:
+            fileName_output = 'Gaussian_noSmooth_scaling_' + name.split('_')[-1]
         file_output = open(fileName_output , 'w')
-        file_output.write('Original non-smooth Scaling band 1-4(Bastnas)\n')
+        file_output.write('Gaussian_Smooth_scaling band 1-4(Bastnas)\n')
         #pixel loop, process all pixels in image.(through a ROI ASCII file)
         for line_index in range(len(lines)):
             print('sample%d processing: %f\n' % ( name_images.index(name)+1 , line_index/len(lines) ))
@@ -299,23 +308,29 @@ def check_all():
             for band in sorted(params_reference.keys()):
                 spectrum_band = choose_band(sp_pixel, params_reference, band)
                 axis_x, axis_y = list(spectrum_band[:,0]),list(spectrum_band[:,1])
-                
+
+                if switch_smooth == 1:
+                    axis_y = savitzky_golay(axis_y,7,3)
+                    spectrum_band = np.array([axis_x,axis_y]).T
+
                 #cal the sim between reference and sp_pixel.
                 reference_info = params_reference[band]
-                reference_info = list(reference_info)
-                similarity = ppm.cal_similarity(reference_info, sp_pixel)
-
-                #None- smooth Gaussian scaling match: 
-                scaling = cal_scaling(MGM.multi_MGM(axis_x, list(params_reference[band]['params_optimize'])), axis_y)
+                similarity = ppm.cal_similarity(reference_info, spectrum_band, depth_threshold = depth_threshold, method = method)
+                if similarity == 0.0:
+                    scaling = 0.0
+                else:
+                    #None- smooth Gaussian scaling match: 
+                    scaling = cal_scaling(MGM.multi_MGM(axis_x, list(params_reference[band]['params_optimize'])), axis_y)
+                    scaling *= similarity
                 #scaling = cal_scaling(axis_y, ori_lib_spectrum_band)
                 scaling_pixel.setdefault(band,scaling)
 
             #write the result. ouput scaling of all pixels into one file. Then use excel to do analysis work
             file_output.write('%d \t %d \t ' % (x,y))
-            for band in scaling_pixel:
+            for band in sorted(scaling_pixel.keys()):
                 file_output.write('%f\t' % scaling_pixel[band])
             file_output.write('\n')
-
+        file_output.write('depth threshold: %f\n' % depth_threshold)
         file_output.close()
 
     
