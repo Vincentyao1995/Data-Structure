@@ -1,87 +1,42 @@
 ﻿import test_algorithm as ta
+import spectral.io.envi as envi
 import os
 import ModifiedGaussianModel as MGM
 import numpy as np
 import matplotlib.pyplot as plt 
 from scipy import optimize
 import pre_processing_mineral as ppm
+from scipy import signal
 
 switch_test = 1
 switch_smooth = 1
-depth_threshold = 0.008
-method = 'modeling' # or general(none)
+depth_threshold = 0.0075
+method_possibility = 'general' # or general(none)
+method_similarity = 'Gaussian'
 
-def savitzky_golay(y, window_size, order, deriv=0, rate=1):
-    r"""Smooth (and optionally differentiate) data with a Savitzky-Golay filter.
-    The Savitzky-Golay filter removes high frequency noise from data.
-    It has the advantage of preserving the original shape and
-    features of the signal better than other types of filtering
-    approaches, such as moving averages techniques.
-    Parameters
-    ----------
-    y : array_like, shape (N,)
-        the values of the time history of the signal.
-    window_size : int
-        the length of the window. Must be an odd integer number.
-    order : int
-        the order of the polynomial used in the filtering.
-        Must be less then `window_size` - 1.
-    deriv: int
-        the order of the derivative to compute (default = 0 means only smoothing)
-    Returns
-    -------
-    ys : ndarray, shape (N)
-        the smoothed signal (or it's n-th derivative).
-    Notes
-    -----
-    The Savitzky-Golay is a type of low-pass filter, particularly
-    suited for smoothing noisy data. The main idea behind this
-    approach is to make for each point a least-square fit with a
-    polynomial of high order over a odd-sized window centered at
-    the point.
-    Examples
-    --------
-    t = np.linspace(-4, 4, 500)
-    y = np.exp( -t**2 ) + np.random.normal(0, 0.05, t.shape)
-    ysg = savitzky_golay(y, window_size=31, order=4)
-    import matplotlib.pyplot as plt
-    plt.plot(t, y, label='Noisy signal')
-    plt.plot(t, np.exp(-t**2), 'k', lw=1.5, label='Original signal')
-    plt.plot(t, ysg, 'r', label='Filtered signal')
-    plt.legend()
-    plt.show()
-    References
-    ----------
-    .. [1] A. Savitzky, M. J. E. Golay, Smoothing and Differentiation of
-       Data by Simplified Least Squares Procedures. Analytical
-       Chemistry, 1964, 36 (8), pp 1627-1639.
-    .. [2] Numerical Recipes 3rd Edition: The Art of Scientific Computing
-       W.H. Press, S.A. Teukolsky, W.T. Vetterling, B.P. Flannery
-       Cambridge University Press ISBN-13: 9780521880688
-    """
-    import numpy as np
-    from math import factorial
-    
-    try:
-        window_size = np.abs(np.int(window_size))
-        order = np.abs(np.int(order))
-    except ValueError:
-        raise ValueError("window_size and order have to be of type int")
-    if window_size % 2 != 1 or window_size < 1:
-        raise TypeError("window_size size must be a positive odd number")
-    if window_size < order + 2:
-        raise TypeError("window_size is too small for the polynomials order")
-    order_range = range(order+1)
-    half_window = (window_size -1) // 2
-    # precompute coefficients
-    b = np.mat([[k**i for i in order_range] for k in range(-half_window, half_window+1)])
-    m = np.linalg.pinv(b).A[deriv] * rate**deriv * factorial(deriv)
-    # pad the signal at the extremes with
-    # values taken from the signal itself
-    firstvals = y[0] - np.abs( y[1:half_window+1][::-1] - y[0] )
-    lastvals = y[-1] + np.abs(y[-half_window-1:-1][::-1] - y[-1])
-    y = np.concatenate((firstvals, y, lastvals))
-    return np.convolve( m[::-1], y, mode='valid')
+#this function input the absorption band index of a mineral (bastnas or Sth.), return the spectrum of reference band. 
+def get_oringinal_spectrum(params_reference, band):
+    filePath = 'data/'
+    fileName = 'SpectraForAbsorptionFitting.hdr'
+    sp_lib = envi.open(filePath + fileName)
+    wavelength = sp_lib.bands.centers
+    reflectance = sp_lib.spectra[0]
+    spectrum = np.array([wavelength, reflectance]).T
+    spectrum_band = choose_band(spectrum, params_reference, band)
+    return spectrum_band
+
+# this function is to adjust axis_y and axis_original_y to the same length, because they has different spectrum resolution. Input two spectrum([(920,0.222),....], [(919.08, 0.458),....] ) Resample and return two list:(reflectance):  (0.02,..) (0.5...)
+def resample_sp_resolution(spectrum_band, spectrum_band_ori):
+
+    if len(spectrum_band[:,0]) >= len(spectrum_band_ori[:,0]):
+        axis_y = spectrum_band[:,1]
+        axis_y_ori = signal.resample(spectrum_band_ori, len(spectrum_band[:,0]))
+    else:
+        axis_y_ori = spectrum_band_ori[:,1]
+        axis_y = signal.resample(spectrum_band,len(spectrum_band_ori[:,0]))
+
+    return axis_y, axis_y_ori
+
 
 # compute para table of the spectrum and return it. input a spectrum?
 def Gaussian(spectrum, params_reference, plotFileName = None):
@@ -95,7 +50,7 @@ def Gaussian(spectrum, params_reference, plotFileName = None):
         params_init = params_reference[band]['params_initial']
         
         spectrum_band = choose_band(spectrum, params_reference, band)
-        #axis_y_smooth = savitzky_golay(spectrum_band[:,1], 11, 3) # window size 51, polynomial order 3
+        
         axis_x = list(spectrum_band[:,0])
         axis_y = list(spectrum_band[:,1])
         params_testing[band] = MGM.fitting_leastSquare(spectrum_band, params_init)
@@ -239,12 +194,7 @@ def cal_proxy_paraTable(fileName_image = 'unKnown.hdr', fileName_ref = 'unKnow2.
     #output_proxy(proxyValue, fileName_image)
     return proxyValue
 
-# this function compute scaling, input listA and listB, and return the scaling(0-1) (s*listA = listB) A is fitting list of standard spectrum library
-def cal_scaling(listA, listB):
-    scaling = 0.
-    errFunc = lambda s, x,y: (y- s* x)**2
-    scaling, success = optimize.leastsq(errFunc, scaling, args=(listA,listB), maxfev = 20000) 
-    return scaling
+
 
 # input the whole spectrum, and params_reference(a dict) read from reference Gaussian parameters .txt file and the band u want to choose, return the band's spectrum
 def choose_band(spectrum, params_reference, band):
@@ -261,7 +211,7 @@ def choose_band(spectrum, params_reference, band):
     if index_begin != -1 and index_end != -1:
         axis_x = spectrum[:,0][index_begin:index_end]
         axis_y = spectrum[:,1][index_begin:index_end]
-        #axis_y_smooth = savitzky_golay(axis_y, 11, 3) # window size 51, polynomial order 3
+        
         spectrum_band = np.array([axis_x, axis_y]).T
         return spectrum_band
 
@@ -287,7 +237,17 @@ def check_all():
         else:
             fileName_output = 'Gaussian_noSmooth_scaling_' + name.split('_')[-1]
         file_output = open(fileName_output , 'w')
+        fileName_output_piScaling = 'pics_scaling_bands.txt'
+        file_output_picScaling = open(fileName_output_piScaling,'w')
+        file_output_picScaling.write('/t/t band1 \t band2 \t band3 \t band4\n')
+
+        scaling_pic = {}
+
         file_output.write('Gaussian_Smooth_scaling band 1-4(Bastnas)\n')
+        
+        scaling_temp = {'band1': 0.0 , 'band2': 0.0,'band3': 0.0,'band4': 0.0}
+        count_pixel_num = len(lines) - 8
+        
         #pixel loop, process all pixels in image.(through a ROI ASCII file)
         for line_index in range(len(lines)):
             print('sample%d processing: %f\n' % ( name_images.index(name)+1 , line_index/len(lines) ))
@@ -310,21 +270,34 @@ def check_all():
                 axis_x, axis_y = list(spectrum_band[:,0]),list(spectrum_band[:,1])
 
                 if switch_smooth == 1:
-                    axis_y = savitzky_golay(axis_y,7,3)
+                    axis_y = ppm.savitzky_golay(axis_y,7,3)
                     spectrum_band = np.array([axis_x,axis_y]).T
 
                 #cal the sim between reference and sp_pixel.
                 reference_info = params_reference[band]
-                similarity = ppm.cal_similarity(reference_info, spectrum_band, depth_threshold = depth_threshold, method = method)
-                if similarity == 0.0:
+                possibility = ppm.cal_possibility(reference_info, spectrum_band, depth_threshold = depth_threshold, method = method_possibility)
+                if possibility == 0.0:
                     scaling = 0.0
                 else:
                     #None- smooth Gaussian scaling match: 
-                    scaling = cal_scaling(MGM.multi_MGM(axis_x, list(params_reference[band]['params_optimize'])), axis_y)
-                    scaling *= similarity
+                    if method_similarity == 'Gaussian':
+                        similarity = ppm.cal_similarity(MGM.multi_MGM(axis_x, list(params_reference[band]['params_optimize'])), axis_y, method = method_similarity)
+                    else:
+                        # get the original spectrum of reference spectrum
+                        spectrum_band_ori = get_oringinal_spectrum(params_reference,band)
+                        # make sure and adjust axis_y and axis_original_y has the same length, because they has different spectrum resolution
+                        axis_y, axis_y_ori = resample_sp_resolution(spectrum_band, spectrum_band_ori)
+                        # got the similarity between reference sp and testing sp
+                        if method_similarity == 'Original':
+                            similarity = ppm.cal_similarity(axis_y, axis_y_ori, method = 'Original')
+                        if method_similarity == 'DTA':
+                            similarity = ppm.cal_similarity(axis_y, axis_y_ori, method = 'DTA')
+                        
+                    scaling *= similarity * possibility
+
                 #scaling = cal_scaling(axis_y, ori_lib_spectrum_band)
                 scaling_pixel.setdefault(band,scaling)
-
+                scaling_temp[band] += scaling
             #write the result. ouput scaling of all pixels into one file. Then use excel to do analysis work
             file_output.write('%d \t %d \t ' % (x,y))
             for band in sorted(scaling_pixel.keys()):
@@ -333,7 +306,14 @@ def check_all():
         file_output.write('depth threshold: %f\n' % depth_threshold)
         file_output.close()
 
-    
+        #write the pic's scaling to 'picScaling.txt'
+        file_output_picScaling.write(name + '\t')
+        for band in sorted(scaling_temp.keys()):
+            file_output_picScaling.write('%f\t' % float(scaling_temp[band]/ count_pixel_num))
+        file_output_picScaling.write('\nSummation of Scaling: %f \t %f \t %f \t %f, the number of total pixels: %d\n' % (scaling_temp['band1'],scaling_temp['band2'],scaling_temp['band3'],scaling_temp['band4'], count_pixel_num))
+    file_output_picScaling.write('center match (possibility) method: %s\n scaling(similarity) method: %s, Smooth or not: %d \n' % (method_possibility, method_similarity, switch_smooth))
+    file_output_picScaling.close()
+
 def main():
     check_all()
     proxyValue = cal_proxy_paraTable(fileName_image = 'VNIR_sample1_18points.hdr',fileName_ref = 'bastnas_gau_params.txt')

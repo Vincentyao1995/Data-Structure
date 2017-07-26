@@ -1,10 +1,85 @@
 ﻿from scipy import signal
+from scipy import optimize
 from numpy import mean
 import ModifiedGaussianModel as MGM
 import numpy as np
 import matplotlib.pyplot as plt
 
 center_error = 6
+threshold_center_error = 3 
+
+# function of smooth    
+def savitzky_golay(y, window_size, order, deriv=0, rate=1):
+    r"""Smooth (and optionally differentiate) data with a Savitzky-Golay filter.
+    The Savitzky-Golay filter removes high frequency noise from data.
+    It has the advantage of preserving the original shape and
+    features of the signal better than other types of filtering
+    approaches, such as moving averages techniques.
+    Parameters
+    ----------
+    y : array_like, shape (N,)
+        the values of the time history of the signal.
+    window_size : int
+        the length of the window. Must be an odd integer number.
+    order : int
+        the order of the polynomial used in the filtering.
+        Must be less then `window_size` - 1.
+    deriv: int
+        the order of the derivative to compute (default = 0 means only smoothing)
+    Returns
+    -------
+    ys : ndarray, shape (N)
+        the smoothed signal (or it's n-th derivative).
+    Notes
+    -----
+    The Savitzky-Golay is a type of low-pass filter, particularly
+    suited for smoothing noisy data. The main idea behind this
+    approach is to make for each point a least-square fit with a
+    polynomial of high order over a odd-sized window centered at
+    the point.
+    Examples
+    --------
+    t = np.linspace(-4, 4, 500)
+    y = np.exp( -t**2 ) + np.random.normal(0, 0.05, t.shape)
+    ysg = savitzky_golay(y, window_size=31, order=4)
+    import matplotlib.pyplot as plt
+    plt.plot(t, y, label='Noisy signal')
+    plt.plot(t, np.exp(-t**2), 'k', lw=1.5, label='Original signal')
+    plt.plot(t, ysg, 'r', label='Filtered signal')
+    plt.legend()
+    plt.show()
+    References
+    ----------
+    .. [1] A. Savitzky, M. J. E. Golay, Smoothing and Differentiation of
+       Data by Simplified Least Squares Procedures. Analytical
+       Chemistry, 1964, 36 (8), pp 1627-1639.
+    .. [2] Numerical Recipes 3rd Edition: The Art of Scientific Computing
+       W.H. Press, S.A. Teukolsky, W.T. Vetterling, B.P. Flannery
+       Cambridge University Press ISBN-13: 9780521880688
+    """
+    import numpy as np
+    from math import factorial
+    
+    try:
+        window_size = np.abs(np.int(window_size))
+        order = np.abs(np.int(order))
+    except ValueError:
+        raise ValueError("window_size and order have to be of type int")
+    if window_size % 2 != 1 or window_size < 1:
+        raise TypeError("window_size size must be a positive odd number")
+    if window_size < order + 2:
+        raise TypeError("window_size is too small for the polynomials order")
+    order_range = range(order+1)
+    half_window = (window_size -1) // 2
+    # precompute coefficients
+    b = np.mat([[k**i for i in order_range] for k in range(-half_window, half_window+1)])
+    m = np.linalg.pinv(b).A[deriv] * rate**deriv * factorial(deriv)
+    # pad the signal at the extremes with
+    # values taken from the signal itself
+    firstvals = y[0] - np.abs( y[1:half_window+1][::-1] - y[0] )
+    lastvals = y[-1] + np.abs(y[-half_window-1:-1][::-1] - y[-1])
+    y = np.concatenate((firstvals, y, lastvals))
+    return np.convolve( m[::-1], y, mode='valid')
 
 #this function input the spectrum(rocks pixels'), centers' position and weight([863.5,80%]), and the judging method('general', 'modeling'). Return the percent this pixel is possible to be mineralA
 def cal_centers_around(sp_testing, center, method = 'general'):
@@ -26,12 +101,22 @@ def cal_centers_around(sp_testing, center, method = 'general'):
                 if i > index:
                     if sp_testing[:,1][i] >= center[1]:
                         right_higher_num += 1
+
             if (left_higher_num >= 1 and right_higher_num >= 2) or (left_higher_num >= 2 and right_higher_num >= 1):
                 res = True
                 break
             else:
                 continue
-        return res
+        # increase possibility the center hit.? ???????   Solution: u should increase smooth strength.....!!!!!!! attention
+        if center[1] >= 0.3:
+            #attention, time to debug scoring condition, if not smooth enough, it would appear every point got a possibility
+            #add more score the hit condition: if the relative minimum in this range is around center, then this center is hitted.
+            minima_index = signal.argrelextrema(savitzky_golay(sp_testing[:,1], 21,3), np.less)
+            for i in sorted(minima_index):
+                minima_position = sp_testing[:,0][i]
+                if center[0] >= minima_position - threshold_center_error and center[0] <= minima_position + threshold_center_error:
+                    res = True
+            return res
 
     if method == 'modeling':
     # use Gaussian model to fit and got center.
@@ -54,6 +139,7 @@ def cal_centers_around(sp_testing, center, method = 'general'):
             else:
                 res_list.append(0)
         return res_list
+
 #this function input centers position, return a dict, key is centers' position and value is weight. [720.056: 0.3, 760.58: 0.7]
 def cal_centers_weight(centers_position, mineral_type = 'bastnas'):
     centers_weight = {}
@@ -84,7 +170,7 @@ def cal_centers_weight(centers_position, mineral_type = 'bastnas'):
     return centers_weight
 
 # input the reference spectrum info(a list), including this mineral spectrum's main feature, like centers position and depth. And testing spectrum need to be tested. return the simlarity(0-100%) between ref and testing. This function is to make sure whether this spectrum is possible to be mineralA (reference mineral spectrum)
-def cal_similarity(reference_info, sp_testing, depth_threshold = 0.0075, method = 'general'):
+def cal_possibility(reference_info, sp_testing, depth_threshold = 0.0075, method = 'general'):
     #initial part and scoring system: only use center to score and evaluate similarity.
     
     num_param_group = int(len(reference_info['params_initial'])/3)
@@ -117,6 +203,19 @@ def cal_similarity(reference_info, sp_testing, depth_threshold = 0.0075, method 
                     sim_percent += centers[center_position]
 
     return sim_percent
+
+# this function compute scaling, input listA and listB, and return the scaling(0-1) (s*listA = listB) A is fitting list of standard spectrum library
+def cal_similarity(listA, listB, method = 'Gaussian'):
+    if method =='Gaussian' or method == 'Original':
+        scaling = 0.
+        errFunc = lambda s, x,y: (y- s* x)**2
+        scaling, success = optimize.leastsq(errFunc, scaling, args=(listA,listB), maxfev = 20000) 
+        return scaling
+
+    elif method == 'DTA':
+        pass
+    else:
+        pass
 
 # this method need pre-geologist knowledge, so cal this info auto-matically is kind of hard.
 # The most similar: use MGM to simulate reference spectrum and use 'Gaussian params' as reference info.
