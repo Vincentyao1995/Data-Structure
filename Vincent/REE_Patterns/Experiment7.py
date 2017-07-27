@@ -8,11 +8,11 @@ from scipy import optimize
 import pre_processing_mineral as ppm
 from scipy import signal
 
-switch_test = 1
+switch_test = 0
 switch_smooth = 1
 depth_threshold = 0.0075
 method_possibility = 'general' # or general(none)
-method_similarity = 'Gaussian'
+method_similarity = 'Original'
 
 #this function input the absorption band index of a mineral (bastnas or Sth.), return the spectrum of reference band. 
 def get_oringinal_spectrum(params_reference, band):
@@ -30,10 +30,10 @@ def resample_sp_resolution(spectrum_band, spectrum_band_ori):
 
     if len(spectrum_band[:,0]) >= len(spectrum_band_ori[:,0]):
         axis_y = spectrum_band[:,1]
-        axis_y_ori = signal.resample(spectrum_band_ori, len(spectrum_band[:,0]))
+        axis_y_ori = signal.resample(spectrum_band_ori[:,1], len(spectrum_band[:,0]))
     else:
         axis_y_ori = spectrum_band_ori[:,1]
-        axis_y = signal.resample(spectrum_band,len(spectrum_band_ori[:,0]))
+        axis_y = signal.resample(spectrum_band[:,1], len(spectrum_band_ori[:,0]))
 
     return axis_y, axis_y_ori
 
@@ -225,6 +225,11 @@ def check_all():
     name_images = [name for name in os.listdir(filePath) if name.endswith('.txt')]
     params_reference = load_reference('data/VNIR/rocks/' + 'bastnas_gau_params.txt')
 
+    filePath_output = 'output/VNIR_scaling/'
+
+    fileName_output_piScaling = filePath_output + 'pics_scaling_bands.txt'
+    file_output_picScaling = open(fileName_output_piScaling,'w')
+
     #image loop, process all images.
     for name in sorted(name_images):
         print('image %s processing!' % name)
@@ -233,19 +238,17 @@ def check_all():
         lines = [line for line in image_file]
         # got the pixels' spectrum, ignore the header of file.
         if switch_smooth:
-            fileName_output = 'Gaussian_Smooth_scaling_' + name.split('_')[-1]
+            fileName_output = filePath_output + 'Gaussian_Smooth_scaling_' + name.split('_')[-1]
         else:
-            fileName_output = 'Gaussian_noSmooth_scaling_' + name.split('_')[-1]
+            fileName_output = filePath_output + 'Gaussian_noSmooth_scaling_' + name.split('_')[-1]
         file_output = open(fileName_output , 'w')
-        fileName_output_piScaling = 'pics_scaling_bands.txt'
-        file_output_picScaling = open(fileName_output_piScaling,'w')
-        file_output_picScaling.write('/t/t band1 \t band2 \t band3 \t band4\n')
 
-        scaling_pic = {}
+        file_output_picScaling.write('\t\t band1 \t band2 \t band3 \t band4\n')
 
         file_output.write('Gaussian_Smooth_scaling band 1-4(Bastnas)\n')
         
         scaling_temp = {'band1': 0.0 , 'band2': 0.0,'band3': 0.0,'band4': 0.0}
+        scaling_pic = 0. 
         count_pixel_num = len(lines) - 8
         
         #pixel loop, process all pixels in image.(through a ROI ASCII file)
@@ -289,11 +292,11 @@ def check_all():
                         axis_y, axis_y_ori = resample_sp_resolution(spectrum_band, spectrum_band_ori)
                         # got the similarity between reference sp and testing sp
                         if method_similarity == 'Original':
-                            similarity = ppm.cal_similarity(axis_y, axis_y_ori, method = 'Original')
+                            similarity = ppm.cal_similarity(axis_y_ori,axis_y, method = 'Original')
                         if method_similarity == 'DTA':
-                            similarity = ppm.cal_similarity(axis_y, axis_y_ori, method = 'DTA')
+                            similarity = ppm.cal_similarity(axis_y_ori,axis_y, method = 'DTA')
                         
-                    scaling *= similarity * possibility
+                    scaling = float(similarity * possibility)
 
                 #scaling = cal_scaling(axis_y, ori_lib_spectrum_band)
                 scaling_pixel.setdefault(band,scaling)
@@ -303,6 +306,8 @@ def check_all():
             for band in sorted(scaling_pixel.keys()):
                 file_output.write('%f\t' % scaling_pixel[band])
             file_output.write('\n')
+            scaling_pic += ppm.cal_scaling(scaling_pixel)
+
         file_output.write('depth threshold: %f\n' % depth_threshold)
         file_output.close()
 
@@ -311,7 +316,9 @@ def check_all():
         for band in sorted(scaling_temp.keys()):
             file_output_picScaling.write('%f\t' % float(scaling_temp[band]/ count_pixel_num))
         file_output_picScaling.write('\nSummation of Scaling: %f \t %f \t %f \t %f, the number of total pixels: %d\n' % (scaling_temp['band1'],scaling_temp['band2'],scaling_temp['band3'],scaling_temp['band4'], count_pixel_num))
-    file_output_picScaling.write('center match (possibility) method: %s\n scaling(similarity) method: %s, Smooth or not: %d \n' % (method_possibility, method_similarity, switch_smooth))
+        file_output_picScaling.write('Picture total scaling: %f average: %f \n \n '% (scaling_pic, float(scaling_pic/count_pixel_num) ) )
+
+    file_output_picScaling.write('center match (possibility) method: %s\t scaling(similarity) method: %s \t Smooth or not: %d \n' % (method_possibility, method_similarity, switch_smooth))
     file_output_picScaling.close()
 
 def main():

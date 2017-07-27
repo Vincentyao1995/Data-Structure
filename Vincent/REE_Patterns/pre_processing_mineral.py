@@ -4,9 +4,11 @@ from numpy import mean
 import ModifiedGaussianModel as MGM
 import numpy as np
 import matplotlib.pyplot as plt
+from numpy import mean
 
 center_error = 6
-threshold_center_error = 3 
+threshold_center_error = 3
+switch_minima_centerMatching = 1
 
 # function of smooth    
 def savitzky_golay(y, window_size, order, deriv=0, rate=1):
@@ -93,30 +95,29 @@ def cal_centers_around(sp_testing, center, method = 'general'):
         # set acceptable error
         index_list = [index-2, index -1, index, index+1, index+2 ]
         res = False
-        for index in sorted(index_list):
-            for i in range(index-3, index+4):
-                if i < index:
-                    if sp_testing[:,1][i] >= center[1]:
-                        left_higher_num += 1
-                if i > index:
-                    if sp_testing[:,1][i] >= center[1]:
-                        right_higher_num += 1
+        if switch_minima_centerMatching != 1:
+            for index in sorted(index_list):
+                for i in range(index-3, index+4):
+                    if i < index:
+                        if sp_testing[:,1][i] >= center[1]:
+                            left_higher_num += 1
+                    if i > index:
+                        if sp_testing[:,1][i] >= center[1]:
+                            right_higher_num += 1
 
-            if (left_higher_num >= 1 and right_higher_num >= 2) or (left_higher_num >= 2 and right_higher_num >= 1):
-                res = True
-                break
-            else:
-                continue
-        # increase possibility the center hit.? ???????   Solution: u should increase smooth strength.....!!!!!!! attention
-        if center[1] >= 0.3:
-            #attention, time to debug scoring condition, if not smooth enough, it would appear every point got a possibility
-            #add more score the hit condition: if the relative minimum in this range is around center, then this center is hitted.
-            minima_index = signal.argrelextrema(savitzky_golay(sp_testing[:,1], 21,3), np.less)
-            for i in sorted(minima_index):
+                if (left_higher_num >= 1 and right_higher_num >= 2) or (left_higher_num >= 2 and right_higher_num >= 1):
+                    res = True
+                    break
+                else:
+                    continue
+        elif switch_minima_centerMatching == 1:
+            minima_index = signal.argrelextrema(savitzky_golay(sp_testing[:,1], 5,3), np.less)
+            for i in sorted(list(minima_index[0])):
                 minima_position = sp_testing[:,0][i]
                 if center[0] >= minima_position - threshold_center_error and center[0] <= minima_position + threshold_center_error:
                     res = True
-            return res
+                    break
+        return res
 
     if method == 'modeling':
     # use Gaussian model to fit and got center.
@@ -222,6 +223,27 @@ def cal_similarity(listA, listB, method = 'Gaussian'):
 def cal_reference_info(sp_reference):
     
     return reference_info
+
+# input a pixel's scaling dict, band1: 0.856, band2: 0.76 ..... return a scaling value of this pixel, use different weight to compute.
+def cal_scaling(scaling_dict):
+
+    #record how many bands have none-zero scaling
+    num_band_noneScaling = 0 
+    scaling_dict_noneZero = {}
+    for band in sorted(scaling_dict.keys()):
+        if scaling_dict[band] != 0.0:
+            num_band_noneScaling += 1
+            scaling_dict_noneZero.setdefault(band,scaling_dict[band])
+    if num_band_noneScaling == 0:
+        return 0.
+    elif num_band_noneScaling == 1:
+        band = list(scaling_dict_noneZero.keys())[0]
+        return 0.4 * mean(list(scaling_dict_noneZero.values()))
+    elif num_band_noneScaling == 2:
+        return 0.8 * mean(list(scaling_dict_noneZero.values()))
+    elif num_band_noneScaling == 3:
+        return mean(list(scaling_dict_noneZero.values()))
+
 
 # this function input a spectrum(band), return its ABP depth, alg is DT's 'depth - proxy value'. 
 def cal_absorption_depth(spectrum):
