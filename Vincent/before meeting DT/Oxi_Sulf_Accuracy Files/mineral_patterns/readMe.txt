@@ -1,1 +1,0 @@
-The reason why SAI of Kaolinite 1A is not same is that Kaolinite used more pics, and 1A just used less.
