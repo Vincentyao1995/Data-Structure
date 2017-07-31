@@ -1,0 +1,118 @@
+If u guys want to use some algorithm, u could reference this file.
+
+Only useful function and easy- understand ones listed here.
+
+#attention: Oxido&Sulfuro means only Oxido&Sulfuro data supported.
+
+Classifier_SAM.py(Oxido&Sulfuro):
+
+1.classifier_SAM
+# spectrum angle mapping, input spectrum reference1 and reference2 and testing spectrum. Return testing spectrum belongs to class1 or class2 (return 1 or 2). input three lists -- reflectance (y value of spectrum). Attention to match your input with the same Range of x.
+
+def classifier_SAM(SP_reference1, SP_reference2, SP_testing):
+return 1/2
+
+2. cal_sp_angle
+# calculate spectrum angle betweeen two sp. return the angle. Input two lists of reflectance. Very similar to 1.
+
+def cal_sp_angle(sp1, sp2):
+return angle
+
+3. cal_avg_sp
+#cal the average spectrum of a img. Input a img and return an array (input the same format as Spectral lib's open_image )
+
+def cal_avg_SP(img):
+return average_spectrum
+
+4.exclude_BG
+#exclude the background pixel, into an array(spectrum) and return T/F, True: background; False: not a background (Oxido and sulfuro data has background and very easy to discern) 
+
+def exclude_BG(pixel_array)
+return True/ Flase
+
+
+
+SP_paras.py(Oxido&Sulfuro):
+
+1.choose_ABP_bands
+#input a spectrum(reflectance list), and the band u want to choose, there are 3 bands in total. [0,0,1] choose only the third band. return a list like:  [[0.12,0.56,0.86....], [...] ]
+#ignore othere parameters
+
+def choose_ABP_bands(sp, auto_set = 1, type = 'sulfuro', choose_band = [1,1,1], wavelength = None):
+
+2.cal_SP_paras
+#input a list contains different bands(reflectance), like: [[0.12,0.56,0.86....], [...] ] return a dict like: {'band1': {'SAI':xx, 'AD': xx, 'AA':xx .....}, {'band2':{...}}, ...} This dict is the spectrum parameters of different bands:
+def cal_SP_paras(ABP_bands_SP):
+
+
+Usage example of these two function: 
+ABP_bands = choose_ABP_bands(sp, choose_band = [1,0,1])
+params_dict = cal_SP_paras(ABP_bands)
+
+
+
+
+ModifiedGaussianModel.py
+
+1. mutiple ModifiedGaussianModel
+#Multiple MGM(or Guassian), input a para list, then they would use the list to construct muti- Gaussian. list construction: [h1,h2,...,hx, c1,...,cx, w1,...,wx], x is a list of wavelength
+
+def multi_MGM(x, params, n=1)
+
+
+2.read_excel(filePath = None, sheetName = 'Sheet1'):
+input the filePath (file name included, and the sheetName, return a dataFrame contains all the data.)
+
+
+3.leastSquare fitting:
+#input a spectrum [(500,0.5),(501,0.6)....], initial params(a list like [h1,h2, w1,w2, c1,c2])
+return a list containing the optimize params.
+#ignore other parameters
+
+def fitting_leastSquare(spectrum, params, fitting_model = multi_MGM, hull = 0):
+
+
+
+pre_processing_mineral.py
+
+1.smooth a curve: savitzky_golay(list_you_smooth, 11, 3)
+#input a list, smooth window size(to box120 data, 5 is a good window size.) and order(3 is enough) 
+
+def savitzky_golay(y, window_size, order, deriv=0, rate=1):
+return list_smoothed
+
+2.judge is there a center around '730nm':
+#this function input the spectrum(rocks pixels') like [(800,0.1), (801,0.2)....], centers' position and weight([863.5,80%]), and the judging method('general', 'modeling'). Return True or Flase. whether in rock pixels' spectrum, there is a center around 863.5 or not.
+
+
+def cal_centers_around(sp_testing, center, method = 'general', switch_minima_centerMatching = 1):
+return True/ Flase
+
+3. distribute weight to centers(now manually):
+#this function input centers position, return a dict, key is centers' position and value is weight. [720.056: 0.3, 760.58: 0.7]
+
+def cal_centers_weight(centers_position, mineral_type = 'bastnas'):
+return center_weight(a dict)
+
+4.compute the possibility of a pixel to be the minrealA(we are testing):
+# input parameters as below. reference_info is got from another function( 5. load_reference)
+def cal_possibility(reference_info, sp_testing, depth_threshold = 0.0075, method = 'general'):
+
+
+5.load_reference(filePath): 
+#load the reference info from txt file. this txt is bastnas_gau_params.txt. containing info got from 6 Gaussian fitting.
+
+def load_reference(filePath) e.g. filePath: 'data/bastnas_gau_params.txt'
+
+
+e.g. using 4. and 5. 
+params_reference = ppm.load_reference(filePath + fileName_ref)
+for band in sorted(params_reference.keys()):
+	reference_info  = params_reference[band]
+
+
+
+
+
+
+
