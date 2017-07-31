@@ -1,7 +1,0 @@
-		 band1 	 band2 	 band3 	 band4
-VNIR_sample1_18points.txt	0.136973	0.322273	0.047632	0.000000	
-Summation of Scaling: 2.465517 	 5.800912 	 0.857380 	 0.000000, the number of total pixels: 18
-		 band1 	 band2 	 band3 	 band4
-VNIR_sample1_25points.txt	0.292823	0.347391	0.160401	0.000000	
-Summation of Scaling: 7.320564 	 8.684772 	 4.010015 	 0.000000, the number of total pixels: 25
-center match (possibility) method: general	 scaling(similarity) method: Gaussian 	 Smooth or not: 1 

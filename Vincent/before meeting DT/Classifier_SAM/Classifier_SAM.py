@@ -12,7 +12,7 @@ start_time = time.time()
 
 normalize_button = 0
 
-#cal the average spectrum of a img. Input a img and return an array (the same format as Spectral lib's )
+#cal the average spectrum of a img. Input a img and return an array (envi format of Spectral lib's ) return a list: average reflectance 
 def cal_avg_SP(img):
     width, height, deepth = img.shape
     sum_SP = 0
@@ -218,7 +218,7 @@ def classifier_SAM(SP_reference1, SP_reference2, SP_testing):
         
     return class_type
 
-# calculate spectrum angle betweeen two sp. return the angle.
+# input two list which contains 'comparing' reflectance. Calculate spectrum angle betweeen two sp. return the angle.
 def cal_sp_angle(sp1, sp2):
 
     UpSide = 0
