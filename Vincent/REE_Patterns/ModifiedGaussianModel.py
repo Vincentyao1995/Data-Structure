@@ -22,7 +22,7 @@ def MGM(x,height, center, width, yshift, n = -1):
         return yshift + height * np.exp( - (x**n - center**n)**2 / (width*2) )
 
 #Multiple MGM, input a para list, then they would use the list to construct muti- Gaussian. list construction: [h1,h2,...,hx, c1,...,cx, w1,...,wx]
-def multi_MGM(x,params, n = 1):
+def multi_MGM(x, params, n = 1):
     assert len(params)%3 == 1, 'your input params has different number of width, height and center'
     res = 0
     height = params[:int(len(params)/3)]

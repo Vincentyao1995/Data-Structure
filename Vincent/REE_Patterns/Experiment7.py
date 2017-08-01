@@ -12,7 +12,7 @@ switch_test = 0
 switch_smooth = 1
 depth_threshold = 0.0075
 method_possibility = 'general' # or general(none)
-method_similarity = 'Original'
+method_similarity = 'Corrcoef'
 
 #this function input the absorption band index of a mineral (bastnas or Sth.), return the spectrum of reference band. 
 def get_oringinal_spectrum(params_reference, band):
@@ -108,7 +108,7 @@ def load_reference(filePath):
         #time to append  init and optimize paras and RMS
     return params_ref_dict
 
-#attention, debugging here	
+#attention, debugging here  
 def load_amount(filePath):
     file = open(filePath, 'r')
     lines = [line for line in file]
@@ -157,7 +157,7 @@ def cal_proxy_paraTable(fileName_image = 'unKnown.hdr', fileName_ref = 'unKnow2.
     image_testing = ta.load_image(filePath = filePath + fileName_image )
     width, height, deepth = image_testing.shape
     #2. Get the parameters table of reference spectrum
-    params_reference = load_reference(filePath + fileName_ref)
+    params_reference = ppm.load_reference(filePath + fileName_ref)
     proxyValue = 0
     
     count_bg = 0
@@ -237,10 +237,10 @@ def check_all():
         image_file = open(filePath + name)
         lines = [line for line in image_file]
         # got the pixels' spectrum, ignore the header of file.
-        if switch_smooth:
+        if switch_smooth and method_similarity == 'Gaussian':
             fileName_output = filePath_output + 'Gaussian_Smooth_scaling_' + name.split('_')[-1]
         else:
-            fileName_output = filePath_output + 'Gaussian_noSmooth_scaling_' + name.split('_')[-1]
+            fileName_output = filePath_output + method_similarity +'Original_Smooth_scaling_' + name.split('_')[-1]
         file_output = open(fileName_output , 'w')
 
         file_output_picScaling.write('\t\t band1 \t band2 \t band3 \t band4\n')
@@ -266,6 +266,7 @@ def check_all():
             ref_pixel = [float(i) for i in ref_pixel]
             sp_pixel = np.array([wavelength_pixel, ref_pixel]).T
             scaling_pixel = {}
+            similarity_pixel = {}
             
             #band loop, compute the scaling in different band separately.
             for band in sorted(params_reference.keys()):
@@ -281,6 +282,7 @@ def check_all():
                 possibility = ppm.cal_possibility(reference_info, spectrum_band, depth_threshold = depth_threshold, method = method_possibility)
                 if possibility == 0.0:
                     scaling = 0.0
+                    similarity = 0.0
                 else:
                     #None- smooth Gaussian scaling match: 
                     if method_similarity == 'Gaussian':
@@ -291,21 +293,21 @@ def check_all():
                         # make sure and adjust axis_y and axis_original_y has the same length, because they has different spectrum resolution
                         axis_y, axis_y_ori = resample_sp_resolution(spectrum_band, spectrum_band_ori)
                         # got the similarity between reference sp and testing sp
-                        if method_similarity == 'Original':
-                            similarity = ppm.cal_similarity(axis_y_ori,axis_y, method = 'Original')
-                        if method_similarity == 'DTA':
-                            similarity = ppm.cal_similarity(axis_y_ori,axis_y, method = 'DTA')
+                        similarity = ppm.cal_similarity(axis_y_ori,axis_y, method = method_similarity)
                         
                     scaling = float(similarity * possibility)
 
-                #scaling = cal_scaling(axis_y, ori_lib_spectrum_band)
+                
                 scaling_pixel.setdefault(band,scaling)
+                similarity_pixel.setdefault(band,similarity)
                 scaling_temp[band] += scaling
+
             #write the result. ouput scaling of all pixels into one file. Then use excel to do analysis work
             file_output.write('%d \t %d \t ' % (x,y))
             for band in sorted(scaling_pixel.keys()):
                 file_output.write('%f\t' % scaling_pixel[band])
             file_output.write('\n')
+            
             scaling_pic += ppm.cal_scaling(scaling_pixel)
 
         file_output.write('depth threshold: %f\n' % depth_threshold)
