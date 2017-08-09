@@ -8,11 +8,12 @@ from scipy import optimize
 import pre_processing_mineral as ppm
 from scipy import signal
 
-switch_test = 0
+switch_test = 1
 switch_smooth = 1
 depth_threshold = 0.0075
 method_possibility = 'general' # or general(none)
-method_similarity = 'Corrcoef'
+method_similarity = 'Frechet'
+switch_PosCheck = 0
 
 #this function input the absorption band index of a mineral (bastnas or Sth.), return the spectrum of reference band. 
 def get_oringinal_spectrum(params_reference, band):
@@ -236,12 +237,16 @@ def check_all():
         # open the txt file and got all pixels' spectrum
         image_file = open(filePath + name)
         lines = [line for line in image_file]
+
         # got the pixels' spectrum, ignore the header of file.
-        if switch_smooth and method_similarity == 'Gaussian':
+        if switch_PosCheck == 1:
+            fileName_output = filePath_output + 'Possibility_' + name.split('_')[-1]
+        elif switch_smooth and method_similarity == 'Gaussian':
             fileName_output = filePath_output + 'Gaussian_Smooth_scaling_' + name.split('_')[-1]
         else:
             fileName_output = filePath_output + method_similarity +'Original_Smooth_scaling_' + name.split('_')[-1]
         file_output = open(fileName_output , 'w')
+
 
         file_output_picScaling.write('\t\t band1 \t band2 \t band3 \t band4\n')
 
@@ -266,7 +271,6 @@ def check_all():
             ref_pixel = [float(i) for i in ref_pixel]
             sp_pixel = np.array([wavelength_pixel, ref_pixel]).T
             scaling_pixel = {}
-            similarity_pixel = {}
             
             #band loop, compute the scaling in different band separately.
             for band in sorted(params_reference.keys()):
@@ -280,10 +284,17 @@ def check_all():
                 #cal the sim between reference and sp_pixel.
                 reference_info = params_reference[band]
                 possibility = ppm.cal_possibility(reference_info, spectrum_band, depth_threshold = depth_threshold, method = method_possibility)
-                if possibility == 0.0:
+                if 0:#possibility == 0.0: attention, ouput sim here.
                     scaling = 0.0
                     similarity = 0.0
                 else:
+                    #only output possibility.
+                    if switch_PosCheck == 1:
+                        scaling = float(possibility)
+                        scaling_pixel.setdefault(band,scaling)
+                        scaling_temp[band] += scaling
+                        continue
+
                     #None- smooth Gaussian scaling match: 
                     if method_similarity == 'Gaussian':
                         similarity = ppm.cal_similarity(MGM.multi_MGM(axis_x, list(params_reference[band]['params_optimize'])), axis_y, method = method_similarity)
@@ -292,14 +303,17 @@ def check_all():
                         spectrum_band_ori = get_oringinal_spectrum(params_reference,band)
                         # make sure and adjust axis_y and axis_original_y has the same length, because they has different spectrum resolution
                         axis_y, axis_y_ori = resample_sp_resolution(spectrum_band, spectrum_band_ori)
+                        if method_similarity == 'Frechet':
+                            axis_y_ori = np.array([axis_x, axis_y_ori]).T
+                            axis_y = np.array([axis_x, axis_y]).T
+
                         # got the similarity between reference sp and testing sp
                         similarity = ppm.cal_similarity(axis_y_ori,axis_y, method = method_similarity)
                         
-                    scaling = float(similarity * possibility)
+                    scaling = float(similarity)#attention, output similarity. sim * pos here
 
                 
                 scaling_pixel.setdefault(band,scaling)
-                similarity_pixel.setdefault(band,similarity)
                 scaling_temp[band] += scaling
 
             #write the result. ouput scaling of all pixels into one file. Then use excel to do analysis work

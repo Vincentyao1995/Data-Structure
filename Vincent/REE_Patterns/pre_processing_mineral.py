@@ -5,6 +5,8 @@ import ModifiedGaussianModel as MGM
 import numpy as np
 import matplotlib.pyplot as plt
 from numpy import mean
+import frechet
+
 
 center_error = 6
 threshold_center_error = 3
@@ -217,7 +219,8 @@ def cal_similarity(listA, listB, method = 'Gaussian'):
         pass
     elif method == 'Corrcoef':
         return np.corrcoef(listA, listB)[0][1]
-        
+    elif method == 'Frechet':
+        return frechet.frechetDist(listA, listB)
 	
 # this method need pre-geologist knowledge, so cal this info auto-matically is kind of hard.
 # The most similar: use MGM to simulate reference spectrum and use 'Gaussian params' as reference info.
@@ -244,7 +247,8 @@ def cal_scaling(scaling_dict):
         return 0.8 * mean(list(scaling_dict_noneZero.values()))
     elif num_band_noneScaling == 3:
         return mean(list(scaling_dict_noneZero.values()))
-
+    else:
+        return mean(list(scaling_dict_noneZero.values()))
 
 # this function input a spectrum(band), return its ABP depth, alg is DT's 'depth - proxy value'. 
 def cal_absorption_depth(spectrum):
