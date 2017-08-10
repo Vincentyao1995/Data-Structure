@@ -220,7 +220,7 @@ def choose_band(spectrum, params_reference, band):
 def check_all():
     filePath = 'data/VNIR/ASCII_VNIR/'
     if switch_test ==1:
-        filePath = 'data/VNIR/' # attention, this is the switch of test 18,25 points.
+        filePath = 'data/VNIR/' 
     filePath_image_temp = 'data/VNIR/rocks/VNIR_sample1_18points.hdr'
     wavelength_pixel = ta.load_image(filePath = filePath_image_temp).bands.centers
     name_images = [name for name in os.listdir(filePath) if name.endswith('.txt')]

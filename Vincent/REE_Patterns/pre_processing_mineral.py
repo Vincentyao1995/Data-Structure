@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from numpy import mean
 import frechet
-
+import math
 
 center_error = 6
 threshold_center_error = 3
@@ -221,7 +221,11 @@ def cal_similarity(listA, listB, method = 'Gaussian'):
         return np.corrcoef(listA, listB)[0][1]
     elif method == 'Frechet':
         return frechet.frechetDist(listA, listB)
-	
+    elif method == 'DTW':
+        from dtw import dtw
+        dist = dtw(listA, listB, dist = lambda x,y : math.sqrt((x-y)**2))
+        return dist[0]
+        
 # this method need pre-geologist knowledge, so cal this info auto-matically is kind of hard.
 # The most similar: use MGM to simulate reference spectrum and use 'Gaussian params' as reference info.
 def cal_reference_info(sp_reference):
