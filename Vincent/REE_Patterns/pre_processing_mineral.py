@@ -5,10 +5,12 @@ import ModifiedGaussianModel as MGM
 import numpy as np
 import matplotlib.pyplot as plt
 from numpy import mean
+import frechet
+
 
 center_error = 6
 threshold_center_error = 3
-switch_minima_centerMatching = 1
+
 
 # function of smooth    
 def savitzky_golay(y, window_size, order, deriv=0, rate=1):
@@ -84,7 +86,7 @@ def savitzky_golay(y, window_size, order, deriv=0, rate=1):
     return np.convolve( m[::-1], y, mode='valid')
 
 #this function input the spectrum(rocks pixels'), centers' position and weight([863.5,80%]), and the judging method('general', 'modeling'). Return the percent this pixel is possible to be mineralA
-def cal_centers_around(sp_testing, center, method = 'general'):
+def cal_centers_around(sp_testing, center, method = 'general',switch_minima_centerMatching = 1):
     
     if method == 'general':
         for i in range(len(sp_testing[:,0])):
@@ -215,9 +217,11 @@ def cal_similarity(listA, listB, method = 'Gaussian'):
 
     elif method == 'DTA':
         pass
-    else:
-        pass
-
+    elif method == 'Corrcoef':
+        return np.corrcoef(listA, listB)[0][1]
+    elif method == 'Frechet':
+        return frechet.frechetDist(listA, listB)
+	
 # this method need pre-geologist knowledge, so cal this info auto-matically is kind of hard.
 # The most similar: use MGM to simulate reference spectrum and use 'Gaussian params' as reference info.
 def cal_reference_info(sp_reference):
@@ -243,13 +247,52 @@ def cal_scaling(scaling_dict):
         return 0.8 * mean(list(scaling_dict_noneZero.values()))
     elif num_band_noneScaling == 3:
         return mean(list(scaling_dict_noneZero.values()))
-
+    else:
+        return mean(list(scaling_dict_noneZero.values()))
 
 # this function input a spectrum(band), return its ABP depth, alg is DT's 'depth - proxy value'. 
 def cal_absorption_depth(spectrum):
     return depth
 
-
+# input a filePath and open this file, then read txt file info dict. return a dict containing initial params, optimize paras, in all bands.
+def load_reference(filePath):
+    file = open(filePath , 'r')
+    lines = [line for line in file]
+    
+    params_ref_dict = {}
+    params_initial_mark_temp = 0
+    params_optimize_mark_temp = 0
+    band_index = ''
+    for line in lines:
+        if 'band' in line:
+            band_index = line.split(':')[0]
+            params_ref_dict.setdefault(band_index, {})
+            (begin, end) = (line.replace('nm','').split()[1],line.replace('nm','').split()[-1])
+            params_ref_dict[band_index].setdefault('begin', float(begin))
+            params_ref_dict[band_index].setdefault('end', float(end))
+            continue
+        if 'initial' in line:
+            params_initial_mark_temp = 1
+            continue
+        if 'optimize' in line:
+            params_optimize_mark_temp = 1
+            continue
+        if params_initial_mark_temp == 1:
+            params_initial_list = list(line.split())
+            params_initial_list = [float(i) for i in params_initial_list]
+            params_ref_dict[band_index].setdefault('params_initial', params_initial_list)
+            params_initial_mark_temp = 0
+            continue
+        if params_optimize_mark_temp == 1:
+            params_optimize_list = list(line.split())
+            params_optimize_list = [float(i) for i in params_optimize_list]
+            params_ref_dict[band_index].setdefault('params_optimize', params_optimize_list)
+            params_optimize_mark_temp = 0
+            continue
+        if 'RMS' in line:
+            params_ref_dict[band_index].setdefault('RMS', line)
+        #time to append  init and optimize paras and RMS
+    return params_ref_dict
 
 
 

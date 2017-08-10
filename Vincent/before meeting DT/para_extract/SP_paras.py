@@ -186,7 +186,6 @@ def rectify(sp_ABP_band, minRef_index):
 # input auto_set, default 1 and set the ABPs (absorption bands) are set mannually
 # type controls the ABP bands' difference between sulf and oxi. (tho no differences now.)
 # sp is a spectrum.
-#attention, maybe user should input spectrum resolution and spectrum range. So that could auto match the spectrum index from wavelength
 def choose_ABP_bands(sp, auto_set = 1, type = 'sulfuro', choose_band = [1,1,1], wavelength = None):
 
     global bands_init

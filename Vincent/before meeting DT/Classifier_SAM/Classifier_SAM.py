@@ -12,7 +12,7 @@ start_time = time.time()
 
 normalize_button = 0
 
-#cal the average spectrum of a img. Input a img and return an array (envi format of Spectral lib's ) return a list: average reflectance 
+#cal the average spectrum of a img. Input a img and return an array (input the same format as Spectral lib's open_image )
 def cal_avg_SP(img):
     width, height, deepth = img.shape
     sum_SP = 0
@@ -28,7 +28,7 @@ def cal_avg_SP(img):
 
     return sum_SP / count
     
-#exclude the background pixel, into an array(spectrum) and return T/F, True: background; False: not a background
+#exclude the background pixel, into an array(spectrum) and return T/F, True: background; False: not a background (Oxido and sulfuro data has background and very easy to discern)
 def exclude_BG(pixel_array):
     if sum(pixel_array) == 0:
         return True
@@ -218,7 +218,7 @@ def classifier_SAM(SP_reference1, SP_reference2, SP_testing):
         
     return class_type
 
-# input two list which contains 'comparing' reflectance. Calculate spectrum angle betweeen two sp. return the angle.
+# calculate spectrum angle betweeen two sp. return the angle.
 def cal_sp_angle(sp1, sp2):
 
     UpSide = 0

@@ -1,0 +1,31 @@
+		 band1 	 band2 	 band3 	 band4
+Box120_VNIR_sample1.txt	0.087659	0.134387	0.034023	0.000000	
+Summation of Scaling: 5064.660000 	 7764.450000 	 1965.750000 	 0.000000, the number of total pixels: 57777
+Picture total scaling: 5583.142667 average: 0.096633 
+ 
+ 		 band1 	 band2 	 band3 	 band4
+Box120_VNIR_sample2.txt	0.072797	0.179832	0.024217	0.000000	
+Summation of Scaling: 9065.760000 	 22395.175000 	 3015.900000 	 0.000000, the number of total pixels: 124534
+Picture total scaling: 13324.307667 average: 0.106993 
+ 
+ 		 band1 	 band2 	 band3 	 band4
+Box120_VNIR_sample3.txt	0.055631	0.129409	0.020281	0.000000	
+Summation of Scaling: 1196.780000 	 2783.975000 	 436.300000 	 0.000000, the number of total pixels: 21513
+Picture total scaling: 1698.447000 average: 0.078950 
+ 
+ 		 band1 	 band2 	 band3 	 band4
+Box120_VNIR_sample4.txt	0.043976	0.229085	0.012799	0.000000	
+Summation of Scaling: 5717.060000 	 29781.675000 	 1663.950000 	 0.000000, the number of total pixels: 130003
+Picture total scaling: 14613.885333 average: 0.112412 
+ 
+ 		 band1 	 band2 	 band3 	 band4
+Box120_VNIR_sample5.txt	0.060590	0.162203	0.025296	0.000000	
+Summation of Scaling: 5035.740000 	 13481.050000 	 2102.400000 	 0.000000, the number of total pixels: 83112
+Picture total scaling: 7928.597000 average: 0.095397 
+ 
+ 		 band1 	 band2 	 band3 	 band4
+Box120_VNIR_sample6.txt	0.034987	0.166136	0.010334	0.000000	
+Summation of Scaling: 3622.500000 	 17201.175000 	 1070.000000 	 0.000000, the number of total pixels: 103537
+Picture total scaling: 8595.776000 average: 0.083021 
+ 
+ center match (possibility) method: general	 scaling(similarity) method: Corrcoef 	 Smooth or not: 1 
