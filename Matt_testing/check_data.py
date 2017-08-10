@@ -1,3 +1,4 @@
+#!/bin/env/python3
 # http://pythonhosted.org/spectrum/
 
 import spectral as sp
@@ -6,6 +7,7 @@ from os.path import join, split, realpath
 import pandas as pd
 
 from dvm.config_ini import getConfigOrCopyDefaultFile
+from dvm import load_REE_SWIR
 
 ######## LOAD CONFIG ########
 APP_DIR = join(split(realpath(__file__))[0], '.')
@@ -20,39 +22,34 @@ data_and_research = join(owncloud, 'data-and-research')
 ######## SWIR DATA ########
 print('### SWIR data')
 
-# location of contents of SWIR.zip (downloaded from OwnCloud)
-swir_data_dir = configData['data']['swir_data_dir']
+img = load_REE_SWIR.load_SWIR_image(configData)
+mineralogy_df, spectrallyActiveMinerals, targetMinerals = load_REE_SWIR.load_mineralogy(configData)
 
-SWIR_fpath = join(swir_data_dir, 'L12464-Box120_SawnQuantSuite_SWIR_High.hdr')
-roi1_fpath = join(swir_data_dir, 'L12464-Box120_SawnQuantSuite_SWIR_High_SampleROI.roi')
-roi2_fpath = join(swir_data_dir, 'L12464-Box120_SawnQuantSuite_SWIR_High_MergedAllSampleOutlines_ROIs.roi')
-
-print('Samples are numbered 1 to 6 from top to bottom.')
-img = sp.open_image(SWIR_fpath)
 print(img)
+input('Press ENTER to continue...')
 
 # testing
+fig, axs = plt.subplots(1,2,figsize=(15,15))
 m = img[:,:,100].squeeze()
-fig, ax = plt.subplots(1,1,figsize=(15,15))
-ax.imshow(m)
-plt.show()
-# testing
+axs[0].imshow(m)
+axs[0].set_title('SWIR image, band 100')
 m = img[:,:,200].squeeze()
-fig, ax = plt.subplots(1,1,figsize=(15,15))
-ax.imshow(m)
+axs[1].imshow(m)
+axs[1].set_title('SWIR image, band 200')
 plt.show()
 
-# Corresponding mineralogy:
-REEdata_fpath = join(data_and_research, 'REEBearingRocks_ImageCube_Data/Quantitative REE Approximate Worksheets.xlsx')
-REEdata_df = pd.read_excel(REEdata_fpath, 'Working', header=1)
-
-sixSamples = ['L12_464 Box120-1','L12_464 Box120-2','L12_464 Box120-3','L12_464 Box120-4','L12_464 Box120-5','L12_464 Box120-6']
-mineralogy_df = REEdata_df[sixSamples].iloc[:18]
-
+print('Mineralogy according to Rietveld on XRD')
 print(mineralogy_df)
 
-aspectralMinerals = ['Albite low', 'Microcline (ordered)', 'Quartz low', 'Aegirine/Augite?']
-spectrallyActiveMinerals = set(mineralogy_df.index) - set(aspectralMinerals)
+print('Spectrally active minerals: ' + str(spectrallyActiveMinerals))
+print('Target minerals: ' + str(targetMinerals))
+input('Press ENTER to continue...')
+
+print('### Masked SWIR data')
+rocks_df, spectrum_columns = load_REE_SWIR.load_SWIR_masked(configData)
+for (group_box_number, group_sample_number), group in rocks_df.groupby(['box_number', 'sample_number']):
+	print('ROCK: box %s, sample %s, number of spectra %d' % (group_box_number, group_sample_number, group.shape[0]))
+input('Press ENTER to continue...')
 
 ######## USGS MINERALS ########
 print('### USGS minerals')
