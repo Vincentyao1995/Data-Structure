@@ -5,7 +5,10 @@ from __future__ import division, print_function
 
 import os
 from os.path import exists
-import ConfigParser as configparser
+try:
+	import configparser # python 3.x
+except:
+	import ConfigParser as configparser # python 2.x
 import shutil
 
 __author__ = "Matthew Dirks"
