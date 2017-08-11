@@ -12,8 +12,9 @@ switch_test = 1
 switch_smooth = 1
 depth_threshold = 0.0075
 method_possibility = 'general' # or general(none)
-method_similarity = 'Frechet'
-switch_PosCheck = 0
+method_similarity = 'Hausdorff'
+switch_PosCheck = 1
+switch_procrustes = 0
 
 #this function input the absorption band index of a mineral (bastnas or Sth.), return the spectrum of reference band. 
 def get_oringinal_spectrum(params_reference, band):
@@ -284,7 +285,7 @@ def check_all():
                 #cal the sim between reference and sp_pixel.
                 reference_info = params_reference[band]
                 possibility = ppm.cal_possibility(reference_info, spectrum_band, depth_threshold = depth_threshold, method = method_possibility)
-                if 0:#possibility == 0.0: attention, ouput sim here.
+                if possibility == 0.0: #attention, ouput sim here. 
                     scaling = 0.0
                     similarity = 0.0
                 else:
@@ -301,16 +302,26 @@ def check_all():
                     else:
                         # get the original spectrum of reference spectrum
                         spectrum_band_ori = get_oringinal_spectrum(params_reference,band)
+                        
                         # make sure and adjust axis_y and axis_original_y has the same length, because they has different spectrum resolution
                         axis_y, axis_y_ori = resample_sp_resolution(spectrum_band, spectrum_band_ori)
-                        if method_similarity == 'Frechet':
+                        
+                        #pre-processing using procruste to decrease the influence of scale, rotation and transfromation.
+                        if switch_procrustes == 1:
+                            axis_y_ori = np.array([axis_x, axis_y_ori]).T
+                            axis_y = np.array([axis_x, axis_y]).T
+                            axis_y, axis_ori = ppm.cal_procrustes(axis_y_ori, axis_y)
+                        
+                        # frechet and hausdorff require at least two dimension data. So add axis_x into it.
+                        if method_similarity == 'Frechet' or method_similarity == 'Hausdorff' or method_similarity == 'Procrustes':
                             axis_y_ori = np.array([axis_x, axis_y_ori]).T
                             axis_y = np.array([axis_x, axis_y]).T
 
+                        
                         # got the similarity between reference sp and testing sp
                         similarity = ppm.cal_similarity(axis_y_ori,axis_y, method = method_similarity)
                         
-                    scaling = float(similarity)#attention, output similarity. sim * pos here
+                    scaling = float(similarity *possibility)#attention, output similarity. sim * pos here
 
                 
                 scaling_pixel.setdefault(band,scaling)

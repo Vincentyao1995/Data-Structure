@@ -215,16 +215,41 @@ def cal_similarity(listA, listB, method = 'Gaussian'):
         scaling, success = optimize.leastsq(errFunc, scaling, args=(listA,listB), maxfev = 20000) 
         return scaling
 
-    elif method == 'DTA':
-        pass
     elif method == 'Corrcoef':
         return np.corrcoef(listA, listB)[0][1]
     elif method == 'Frechet':
-        return frechet.frechetDist(listA, listB)
+        dist = frechet.frechetDist(listA, listB)
+        return 1 / (1 + dist)
     elif method == 'DTW':
         from dtw import dtw
         dist = dtw(listA, listB, dist = lambda x,y : math.sqrt((x-y)**2))
-        return dist[0]
+        return 1 / (1 + dist)
+    elif method == 'Hausdorff':
+
+        if 0:
+            params = [10.,2.5]
+            errFunc = lambda params, x,y: (y- (params[0]* x - params[1]))**2
+            params, success = optimize.leastsq(errFunc, params, args=(listA[:,1],listB[:,1]), maxfev = 20000) 
+            plt.plot(listA[:,0], listA[:,1])
+            listA[:,1] = listA[:,1]* params[0] - params[1] 
+            plt.plot(listA[:,0], listA[:,1])
+            plt.plot(listB[:,0], listB[:,1])
+            plt.show()
+
+        from scipy.spatial.distance import directed_hausdorff
+        dist = max( directed_hausdorff(listA , listB)[0], directed_hausdorff(listB, listA)[0] )
+        return 1/ (1 + dist)
+
+    elif method == 'Procrustes':
+        from scipy.spatial import procrustes
+        matrixA, matrixB, dist = procrustes(listA, listB)
+        return 1 / (1 + dist)
+        
+#this method receive two 2-d or 1-d lists, return the procrustes results of them. (Done similarity transformation)
+def cal_procrustes(axis_y_ori, axis_y):
+    pass
+    from scipy.spatial import procrustes
+    
         
 # this method need pre-geologist knowledge, so cal this info auto-matically is kind of hard.
 # The most similar: use MGM to simulate reference spectrum and use 'Gaussian params' as reference info.
