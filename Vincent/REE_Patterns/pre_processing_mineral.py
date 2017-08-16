@@ -144,27 +144,27 @@ def cal_centers_around(sp_testing, center, method = 'general',switch_minima_cent
         return res_list
 
 #this function input centers position, return a dict, key is centers' position and value is weight. [720.056: 0.3, 760.58: 0.7]
-def cal_centers_weight(centers_position, mineral_type = 'bastnas'):
+def cal_centers_weight(centers_position, mineral_type = 'bastnas', initial_weight = 0.9):
     centers_weight = {}
 
-    #in this for loop, u could read different mineral centers info from a txt file. 
+    #in this for loop, u could read different mineral centers info from a txt file. attention, First write a file contains centers and weight after read this file, u could mienralX - weights in bands. 
     for center in sorted(centers_position):
         if mineral_type == 'bastnas':
             if int (sum(centers_position)/ len(centers_position)) in range(705,770):
                 if center == 740:
-                    centers_weight.setdefault(center, 0.9)
+                    centers_weight.setdefault(center, initial_weight)
                 else:
-                    centers_weight.setdefault(center, float(0.1/5))
+                    centers_weight.setdefault(center, float((1.0-initial_weight)/5))
             if int (sum(centers_position)/ len(centers_position)) in range(770,833):
                 if center == 791 or center == 797:
-                    centers_weight.setdefault(center, 0.45)
+                    centers_weight.setdefault(center, initial_weight/2.0)
                 else:
-                    centers_weight.setdefault(center, 0.1/4)
+                    centers_weight.setdefault(center, (1.0-initial_weight/2.0)/4)
             if int (sum(centers_position)/ len(centers_position)) in range(854,880):
                 if center == 863 :
-                    centers_weight.setdefault(center, 0.9)
+                    centers_weight.setdefault(center, initial_weight)
                 else:
-                    centers_weight.setdefault(center, 0.1/2)
+                    centers_weight.setdefault(center, (1.0-initial_weight)/2)
             if int (sum(centers_position)/ len(centers_position)) in range(880,900):
                 if center == 880 :
                     centers_weight.setdefault(center, 1.0)
