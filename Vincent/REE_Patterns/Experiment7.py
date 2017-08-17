@@ -7,18 +7,23 @@ import matplotlib.pyplot as plt
 from scipy import optimize
 import pre_processing_mineral as ppm
 from scipy import signal
+from scipy.stats import linregress
+
 
 switch_PosCheck = 0
 switch_test = 0
 switch_smooth = 1
-switch_bandTesting = 1
-switch_multiChecking = 0
+switch_bandTesting = 0
+switch_multiChecking = 1
 
 depth_threshold = 0.0075
 method_possibility = 'general' # or general(none)
 method_similarity = 'Original'
 
-
+# this function cal the Rsquared of two list. return R sqaured.
+def Rsquared(listA, listB):
+	slope, intercept, r_value, p_value, std_err = linregress(listA, listB)
+	return r_value**2
 
 #this function input the absorption band index of a mineral (bastnas or Sth.), return the spectrum of reference band. 
 def get_oringinal_spectrum(params_reference, band):
@@ -226,10 +231,10 @@ def choose_band(spectrum, params_reference, band):
         return spectrum_band
 
 #check_all() check all the images, and all the pixels in them. Output every pixels' proxy value(Maybe scaling, or similarity computed using other alg.) into txt files
-def check_all(initial_weight = 1.0):
+def check_all(weight = 0.9, time = 0):
     filePath = 'data/VNIR/ASCII_VNIR/'
     if switch_test ==1:
-        filePath = 'data/VNIR/' 
+        filePath = 'data/VNIR/'
     filePath_image_temp = 'data/VNIR/rocks/VNIR_sample1_18points.hdr'
     wavelength_pixel = ta.load_image(filePath = filePath_image_temp).bands.centers
     name_images = [name for name in os.listdir(filePath) if name.endswith('.txt')]
@@ -242,7 +247,7 @@ def check_all(initial_weight = 1.0):
         fileName_output_picScaling = filePath_output + 'multiChecking.txt'
         file_output_picScaling = open(fileName_output_picScaling,'w')
     
-    dict_proxyValue = {'band1':{initial_weight: []}, 'band2':{initial_weight: []},'band3':{initial_weight: []}}
+    dict_proxyValue = {'band1': [], 'band2':[],'band3':[]}
 
     #image loop, process all images.
     for name in sorted(name_images):
@@ -265,13 +270,13 @@ def check_all(initial_weight = 1.0):
 
             file_output_picScaling.write('\t\t band1 \t band2 \t band3 \t band4\n')
         
-        scaling_temp = {'band1': 0.0 , 'band2': 0.0,'band3': 0.0,'band4': 0.0}
+        scaling_temp = {'band1': 0.0 , 'band2': 0.0,'band3': 0.0}
         scaling_pic = 0. 
         count_pixel_num = len(lines) - 8
         
         #pixel loop, process all pixels in image.(through a ROI ASCII file)
         for line_index in range(len(lines)):
-            print('sample%d processing: %f\n' % ( name_images.index(name)+1 , line_index/len(lines) ))
+            print('(%f) sample%d processing: %f\n' % ( (time+1.0)/10.0 ,name_images.index(name)+1 , line_index/len(lines) ))
             
             line = lines[line_index]
             # ignore the header info in image(.txt file)
@@ -301,7 +306,7 @@ def check_all(initial_weight = 1.0):
 
                 #cal the sim between reference and sp_pixel.
                 reference_info = params_reference[band]
-                possibility = ppm.cal_possibility(reference_info, spectrum_band, depth_threshold = depth_threshold, method = method_possibility)#attention, different mineral
+                possibility = ppm.cal_possibility(reference_info, spectrum_band, depth_threshold = depth_threshold, method = method_possibility, weight = weight)#attention, different mineral
                 if possibility == 0.0: #attention, ouput sim here. 
                     scaling = 0.0
                     similarity = 0.0
@@ -368,14 +373,15 @@ def check_all(initial_weight = 1.0):
         #save proxy info of one picture's all bands.     
         elif switch_multiChecking == 1:
             for band in sorted(scaling_temp.keys()):
-                dict_proxyValue[band][initial_weight].append(scaling_temp[band]/ count_pixel_num)
+                dict_proxyValue[band].append(scaling_temp[band]/ count_pixel_num)
             #attention, time to debug writing check multiple proxy value
         #end of checking all pictures.
-    if switch_multiChecking != 1:        
+    if switch_multiChecking != 1: 
         file_output_picScaling.write('center match (possibility) method: %s\t scaling(similarity) method: %s \t Smooth or not: %d \n' % (method_possibility, method_similarity, switch_smooth))
         file_output_picScaling.close()
     return dict_proxyValue
     # end of check_all()
+
 def main():
     check_all()
     proxyValue = cal_proxy_paraTable(fileName_image = 'VNIR_sample1_18points.hdr',fileName_ref = 'bastnas_gau_params.txt')
@@ -388,8 +394,34 @@ def main():
 
 
 if __name__ == '__main__':
-    check_all(initial_weight = 0.8)
+    if switch_multiChecking:
+        dict_multiProxy = {'band1': {}, 'band2': {}, 'band3': {}}
+        for i in range(9):
+            weight = 0.1 * (10 - i)
+            dict_proxyValue = check_all(weight = weight, time = i)
+            for band in sorted(dict_multiProxy.keys()):
+                proxyList_band = dict_proxyValue[band]
+                dict_multiProxy[band].setdefault(weight, proxyList_band)
+        
+        # write dict_multiProxy into .txt file.
+        filePath = 'output/'
+        fileName = 'multiProxy.txt'
+        file_multiProxy = open(filePath + fileName , 'w')
+        
+        list_amount = [2.8, 2.4, 1.6, 1.2, 1.9, 1.4]
 
-
+        for band in sorted(dict_multiProxy.keys()):
+            file_multiProxy.write('%s \n' % band)
+            for weight in sorted(dict_multiProxy[band].keys()):
+                list_proxy = dict_multiProxy[band][weight]
+                RR = Rsquared(list_amount, list_proxy)
+                file_multiProxy.write('%.1f \t %f' % (float(weight), RR))
+                for proxy in dict_multiProxy[band][weight]:
+                    file_multiProxy.write('\t%f' % proxy)
+                file_multiProxy.write('\n')
+            file_multiProxy.write('\n\n')
+        #time to debugging here.
+    else:
+        check_all()
 
     

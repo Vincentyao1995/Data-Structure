@@ -173,13 +173,13 @@ def cal_centers_weight(centers_position, mineral_type = 'bastnas', initial_weigh
     return centers_weight
 
 # input the reference spectrum info(a list), including this mineral spectrum's main feature, like centers position and depth. And testing spectrum need to be tested. return the simlarity(0-100%) between ref and testing. This function is to make sure whether this spectrum is possible to be mineralA (reference mineral spectrum)
-def cal_possibility(reference_info, sp_testing, depth_threshold = 0.0075, method = 'general'):
+def cal_possibility(reference_info, sp_testing, depth_threshold = 0.0075, method = 'general', weight = 0.8):
     #initial part and scoring system: only use center to score and evaluate similarity.
     
     num_param_group = int(len(reference_info['params_initial'])/3)
     centers_position = reference_info['params_initial'][-num_param_group - 1 : -1]
     #there, users should input the weigth of each center: double ABP: double abp center 90%, other centers occupies 10%; single abp center 80% other centers shares 20%.
-    centers = cal_centers_weight(centers_position)
+    centers = cal_centers_weight(centers_position, initial_weight = weight)
 
     
     index_minimum = sp_testing[:,1].argmin()
