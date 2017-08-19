@@ -11,6 +11,25 @@ import math
 center_error = 6
 threshold_center_error = 3
 
+# input the whole spectrum, and params_reference(a dict) read from reference Gaussian parameters .txt file and the band u want to choose, return the band's spectrum
+def choose_band(spectrum, params_reference, band):
+
+    index_end = -1 
+    index_begin = -1
+        
+    #find the spectrum band in pixels' specturm, because reference sp has different sp resolution with testing sp.
+    for i in range(len(spectrum[:,0])):
+        if spectrum[:,0][i] <= params_reference[band]['begin'] and spectrum[:,0][i+1] >= params_reference[band]['begin']:
+            index_begin = i
+        elif spectrum[:,0][i] <= params_reference[band]['end'] and spectrum[:,0][i+1] >= params_reference[band]['end']:
+            index_end = i
+    if index_begin != -1 and index_end != -1:
+        axis_x = spectrum[:,0][index_begin:index_end]
+        axis_y = spectrum[:,1][index_begin:index_end]
+        
+        spectrum_band = np.array([axis_x, axis_y]).T
+        return spectrum_band
+
 
 # function of smooth    
 def savitzky_golay(y, window_size, order, deriv=0, rate=1):
