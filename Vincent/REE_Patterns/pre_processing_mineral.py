@@ -19,10 +19,16 @@ def choose_band(spectrum, params_reference, band):
         
     #find the spectrum band in pixels' specturm, because reference sp has different sp resolution with testing sp.
     for i in range(len(spectrum[:,0])):
-        if spectrum[:,0][i] <= params_reference[band]['begin'] and spectrum[:,0][i+1] >= params_reference[band]['begin']:
-            index_begin = i
-        elif spectrum[:,0][i] <= params_reference[band]['end'] and spectrum[:,0][i+1] >= params_reference[band]['end']:
-            index_end = i
+        try:
+            if spectrum[:,0][i] <= params_reference[band]['begin'] and spectrum[:,0][i+1] >= params_reference[band]['begin']:
+                index_begin = i
+            elif spectrum[:,0][i] <= params_reference[band]['end'] and spectrum[:,0][i+1] >= params_reference[band]['end']:
+                index_end = i
+        except Exception as exp:
+            print('Error occurs in Choose_band, maybe index wrong. Error info:')
+            print(exp, end ='\n')
+            exit(0)
+
     if index_begin != -1 and index_end != -1:
         axis_x = spectrum[:,0][index_begin:index_end]
         axis_y = spectrum[:,1][index_begin:index_end]
@@ -30,6 +36,9 @@ def choose_band(spectrum, params_reference, band):
         spectrum_band = np.array([axis_x, axis_y]).T
         return spectrum_band
 
+    else:
+        print('Error occurs in Choose_band, maybe index wrong. Error info:')
+        exit(0)
 
 # function of smooth    
 def savitzky_golay(y, window_size, order, deriv=0, rate=1):
