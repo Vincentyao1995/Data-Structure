@@ -1,9 +1,14 @@
-﻿import spectral.io.envi as envi
+﻿
+#this script is do Gaussian modeling for multiple minerals and output the paramters like DT's method. 
+
+import spectral.io.envi as envi
 import ModifiedGaussianModel as MGM
 import numpy as np
 import pre_processing_mineral as ppm
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
-#this script is do Gaussian modeling for multiple minerals and output the paramters like DT's method. 
+switch_plotBand = 1
 
 # input the filePath and return a spectral.io.envi class including many info.
 def open_spectraData(filePath):
@@ -67,9 +72,24 @@ def get_initialParams(filePath, sp_name):
     return dict_mineral_initParams[sp_name]
 
 #input a dict that contains different minerals' optimal fitting parameters and plot them out as the DT's. 
-def plotOut(dict_minerlas_OptParams):
+# also, output the optimal multiple Gaussian modeling results with the original curves
+def plotOut(dict_minerlas_OptParams, sp_lib):
+    #list saves height weight and center, attention, time to plotout DT's result. But only got 6.
+    listHWC = []
+    listHWC.append(list(optimal_parameters[0:numTemp]))
+    listHWC.append(list(optimal_parameters[numTemp:numTemp*2]))
+    listHWC.append(list(optimal_parameters[numTemp*2:-1]))
     
-    pass
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(listHWC[0], listHWC[1], listHWC[2])
+    ax.set_xlabel('Height')
+    ax.set_ylabel('Width')
+    ax.set_zlabel('Center')
+    return 0
+    
+
+
 
 def dictWrite(filePath, dict):
     fileOut = open(filePath, 'w')
@@ -77,7 +97,7 @@ def dictWrite(filePath, dict):
     for mineral in sorted(dict.keys()):
         fileOut.write('Mineral %s\n' % mineral)
         for band in sorted(dict[mineral].keys()):
-            fileOut.write('%s Optimal Parameters(Height, Width, Center, Yshift):\n ')
+            fileOut.write('%s Optimal Parameters(Height, Width, Center, Yshift):\n ' % band)
             for i in range(len(dict[mineral][band])):
                 numTemp  = int(len(dict[mineral][band])/3)
                 if int(i / numTemp)== 0:
@@ -96,14 +116,9 @@ def dictWrite(filePath, dict):
                         fileOut.write('\n')
                 elif int(i / numTemp) == 3:
                     fileOut.write('%f\n' % dict[mineral][band][i])
-                
-                # time to debug here, writing Optimal paramters into .txt file.
-                
-            fileOut.write('Optimal width: ')
             
-            fileOut.write('Optimal center: ')
-            pass
-    fileOut.write('None')
+        fileOut.write('\n')
+    fileOut.write('')
 
 
 if __name__ == '__main__':
@@ -125,8 +140,12 @@ if __name__ == '__main__':
         
         # get initial parameters of this mineral
         initial_parameters = get_initialParams(filePath + fileName_initialParams, sp_name)
+        
+        # change the initial width, height
+        for band in sorted(initial_parameters.keys()):
+            initial_parameters[band]['height'] = [-0.02 for i in range(len(initial_parameters[band]['height']))]
 
-        # use a dict to save optimal params -- Minerals-bands-params  
+        # use a dict to save optimal params -- Minerals-bands-params
         dict_minerals_OptParams.setdefault(sp_name, {})
         
         # for loop into different band
@@ -141,14 +160,42 @@ if __name__ == '__main__':
             initParams_list.extend([initial_parameters[band]['yshift']])
 
             #least square Gaussian modeling.
-            optimal_parameters = MGM.fitting_leastSquare(spectrum_band, initParams_list)
+            optimal_parameters = MGM.fitting_leastSquare(spectrum_band, initParams_list, maxfev = 30000)
 
             #save optimal modeling params into the dict 
             dict_minerals_OptParams[sp_name].setdefault(band, optimal_parameters)
+
+            if switch_plotBand:
+                plt.plot(spectrum_band[:,0], spectrum_band[:,1])
+                OptReflectance = MGM.multi_MGM(spectrum_band[:,0],optimal_parameters)
+                plt.plot(spectrum_band[:,0], OptReflectance)
+                numTemp = int(len(optimal_parameters)/3)
+
+                #list saves single Gaussian model result.
+                listSingleRef = []
+
+                for i in range(numTemp):
+                    listSingleRef.append(optimal_parameters[i])
+                    listSingleRef.append(optimal_parameters[i + numTemp])
+                    listSingleRef.append(optimal_parameters[i + 2 * numTemp])
+                    listSingleRef.append(optimal_parameters[-1])
+                    
+                    singleRef = MGM.multi_MGM(spectrum_band[:,0], listSingleRef)
+                    plt.plot(spectrum_band[:,0], singleRef)
+
+                    listSingleRef = []
+
+
+
+                plt.show()
     
     fileName_OptParams = 'OptParams_Minerals.txt'
-    dictWrite(filePath + fileName_OptParams, dict_minerals_OptParams)    
-    plotOut(dict_minerals_OptParams)
+
+    # write the optimal parameters result into .txt file
+    dictWrite(filePath + fileName_OptParams, dict_minerals_OptParams)
+
+    # plot out the optimal parameters in grid
+    plotOut(dict_minerals_OptParams, sp_lib)
 
 
     
