@@ -6,11 +6,39 @@ import numpy as np
 import matplotlib.pyplot as plt
 from numpy import mean
 import frechet
-
+import math
 
 center_error = 6
 threshold_center_error = 3
 
+# input the whole spectrum, and params_reference(a dict) read from reference Gaussian parameters .txt file and the band u want to choose, return the band's spectrum
+def choose_band(spectrum, params_reference, band):
+
+    index_end = -1 
+    index_begin = -1
+        
+    #find the spectrum band in pixels' specturm, because reference sp has different sp resolution with testing sp.
+    for i in range(len(spectrum[:,0])):
+        try:
+            if spectrum[:,0][i] <= params_reference[band]['begin'] and spectrum[:,0][i+1] >= params_reference[band]['begin']:
+                index_begin = i
+            elif spectrum[:,0][i] <= params_reference[band]['end'] and spectrum[:,0][i+1] >= params_reference[band]['end']:
+                index_end = i
+        except Exception as exp:
+            print('Error occurs in Choose_band, maybe index wrong. Error info:')
+            print(exp, end ='\n')
+            exit(0)
+
+    if index_begin != -1 and index_end != -1:
+        axis_x = spectrum[:,0][index_begin:index_end]
+        axis_y = spectrum[:,1][index_begin:index_end]
+        
+        spectrum_band = np.array([axis_x, axis_y]).T
+        return spectrum_band
+
+    else:
+        print('Error occurs in Choose_band, maybe index wrong. Error info:')
+        exit(0)
 
 # function of smooth    
 def savitzky_golay(y, window_size, order, deriv=0, rate=1):
@@ -144,27 +172,27 @@ def cal_centers_around(sp_testing, center, method = 'general',switch_minima_cent
         return res_list
 
 #this function input centers position, return a dict, key is centers' position and value is weight. [720.056: 0.3, 760.58: 0.7]
-def cal_centers_weight(centers_position, mineral_type = 'bastnas'):
+def cal_centers_weight(centers_position, mineral_type = 'bastnas', initial_weight = 0.9):
     centers_weight = {}
 
-    #in this for loop, u could read different mineral centers info from a txt file. 
+    #in this for loop, u could read different mineral centers info from a txt file. attention, First write a file contains centers and weight after read this file, u could mienralX - weights in bands. 
     for center in sorted(centers_position):
         if mineral_type == 'bastnas':
             if int (sum(centers_position)/ len(centers_position)) in range(705,770):
                 if center == 740:
-                    centers_weight.setdefault(center, 0.9)
+                    centers_weight.setdefault(center, initial_weight)
                 else:
-                    centers_weight.setdefault(center, float(0.1/5))
+                    centers_weight.setdefault(center, float((1.0-initial_weight)/5))
             if int (sum(centers_position)/ len(centers_position)) in range(770,833):
                 if center == 791 or center == 797:
-                    centers_weight.setdefault(center, 0.45)
+                    centers_weight.setdefault(center, initial_weight/2.0)
                 else:
-                    centers_weight.setdefault(center, 0.1/4)
+                    centers_weight.setdefault(center, (1.0-initial_weight/2.0)/4)
             if int (sum(centers_position)/ len(centers_position)) in range(854,880):
                 if center == 863 :
-                    centers_weight.setdefault(center, 0.9)
+                    centers_weight.setdefault(center, initial_weight)
                 else:
-                    centers_weight.setdefault(center, 0.1/2)
+                    centers_weight.setdefault(center, (1.0-initial_weight)/2)
             if int (sum(centers_position)/ len(centers_position)) in range(880,900):
                 if center == 880 :
                     centers_weight.setdefault(center, 1.0)
@@ -173,13 +201,13 @@ def cal_centers_weight(centers_position, mineral_type = 'bastnas'):
     return centers_weight
 
 # input the reference spectrum info(a list), including this mineral spectrum's main feature, like centers position and depth. And testing spectrum need to be tested. return the simlarity(0-100%) between ref and testing. This function is to make sure whether this spectrum is possible to be mineralA (reference mineral spectrum)
-def cal_possibility(reference_info, sp_testing, depth_threshold = 0.0075, method = 'general'):
+def cal_possibility(reference_info, sp_testing, depth_threshold = 0.0075, method = 'general', weight = 0.8):
     #initial part and scoring system: only use center to score and evaluate similarity.
     
     num_param_group = int(len(reference_info['params_initial'])/3)
     centers_position = reference_info['params_initial'][-num_param_group - 1 : -1]
     #there, users should input the weigth of each center: double ABP: double abp center 90%, other centers occupies 10%; single abp center 80% other centers shares 20%.
-    centers = cal_centers_weight(centers_position)
+    centers = cal_centers_weight(centers_position, initial_weight = weight)
 
     
     index_minimum = sp_testing[:,1].argmin()
@@ -215,13 +243,42 @@ def cal_similarity(listA, listB, method = 'Gaussian'):
         scaling, success = optimize.leastsq(errFunc, scaling, args=(listA,listB), maxfev = 20000) 
         return scaling
 
-    elif method == 'DTA':
-        pass
     elif method == 'Corrcoef':
         return np.corrcoef(listA, listB)[0][1]
     elif method == 'Frechet':
-        return frechet.frechetDist(listA, listB)
-	
+        dist = frechet.frechetDist(listA, listB)
+        return 1 / (1 + dist)
+    elif method == 'DTW':
+        from dtw import dtw
+        dist = dtw(listA, listB, dist = lambda x,y : math.sqrt((x-y)**2))
+        return 1 / (1 + dist)
+    elif method == 'Hausdorff':
+
+        if 0:
+            params = [10.,2.5]
+            errFunc = lambda params, x,y: (y- (params[0]* x - params[1]))**2
+            params, success = optimize.leastsq(errFunc, params, args=(listA[:,1],listB[:,1]), maxfev = 20000) 
+            plt.plot(listA[:,0], listA[:,1])
+            listA[:,1] = listA[:,1]* params[0] - params[1] 
+            plt.plot(listA[:,0], listA[:,1])
+            plt.plot(listB[:,0], listB[:,1])
+            plt.show()
+
+        from scipy.spatial.distance import directed_hausdorff
+        dist = max( directed_hausdorff(listA , listB)[0], directed_hausdorff(listB, listA)[0] )
+        return 1/ (1 + dist)
+
+    elif method == 'Procrustes':
+        from scipy.spatial import procrustes
+        matrixA, matrixB, dist = procrustes(listA, listB)
+        return 1 / (1 + dist)
+        
+#this method receive two 2-d or 1-d lists, return the procrustes results of them. (Done similarity transformation)
+def cal_procrustes(axis_y_ori, axis_y):
+    pass
+    from scipy.spatial import procrustes
+    
+        
 # this method need pre-geologist knowledge, so cal this info auto-matically is kind of hard.
 # The most similar: use MGM to simulate reference spectrum and use 'Gaussian params' as reference info.
 def cal_reference_info(sp_reference):

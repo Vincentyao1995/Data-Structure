@@ -1,0 +1,105 @@
+# This file includes all the initial paramters for Gaussian modeling for different minerals 
+
+Mineral Bastnaesite: absorption number-4
+
+band1 range: 705.619995 - 769.640015
+absorption numbers: 6
+height: 0.01	0.01	0.01	0.01	0.01	0.01
+width: 5.0	5.0	5.0	5.0	5.0	5.0
+center: 732	736	740	750	753	759
+yshift:	0
+
+band2 range: 770.429993 - 832.700012
+absorption numbers: 6
+height: 0.01	0.01	0.01	0.01	0.01	0.01
+width: 5.0	5.0	5.0	5.0	5.0	5.0
+center: 783	791	797	803	810	820
+yshift:	0
+
+band3 range: 854.119995 - 879.590027
+absorption numbers: 3
+height:	0.01	0.01	0.01
+width:	5.0	5.0	5.0
+center:	863	868	873
+yshift:	0
+
+band4 range: 880.380005 - 894.750000
+absorption numbers: 1
+height:	0.01
+width:	5.0
+center:	889
+yshift:	0
+
+
+Mineral Britholite: absorption number-3
+
+band1 range: 720 - 775
+absorption numbers: 1
+height:	0.01
+width:	5.0
+center:	746
+yshift:	0
+
+band2 range: 776 - 846
+absorption numbers: 1
+height:	0.01
+width:	5.0
+center:	805
+yshift:	0
+
+band3 range: 847 - 959
+absorption numbers: 2
+height:	0.01	0.01
+width:	5.0	5.0
+center:	866	878
+yshift:	0
+
+
+Mineral Mosandrite: absorption number-3
+
+band1 range: 712 - 770
+absorption numbers: 3
+height:	0.01	0.01	0.01
+width:	5.0	5.0	5.0
+center:	736	740	745
+yshift:	0
+
+band2 range: 770 - 845
+absorption numbers: 3
+height:	0.01	0.01	0.01
+width:	5.0	5.0	5.0
+center:	798	805	810
+yshift:	0
+
+band3 range: 845 - 930
+absorption numbers: 3
+height:	0.01	0.01	0.01
+width:	5.0	5.0	5.0
+center:	866	874	881
+yshift:	0
+
+
+Mineral Monazite: absorption number-3
+
+band1 range: 715 - 773
+absorption numbers: 3
+height:	0.01	0.01	0.01
+width:	5.0	5.0	5.0
+center:	737	745	755
+yshift:	0
+
+band2 range: 773 - 839
+absorption numbers: 1
+height:	0.01
+width:	5.0
+center:	800
+yshift:	0
+
+band3 range: 839 - 931
+absorption numbers: 5
+height:	0.01	0.01	0.01	0.01	0.01
+width:	5.0	5.0	5.0	5.0	5.0
+center:	862	871	886	896	906
+yshift:	0
+
+

@@ -173,11 +173,11 @@ def fitting_tf(spectrum, hull, params, fitting_model = MGM):
     return params_new
 
 #least square fitting function
-def fitting_leastSquare(spectrum, params, fitting_model = multi_MGM, hull = 0):
+def fitting_leastSquare(spectrum, params, fitting_model = multi_MGM, hull = 0, maxfev = 20000):
 
     errFunc = lambda p, x, y: (y - fitting_model(x, p))**2
     
-    para_optim, success = optimize.leastsq(errFunc, params, args=(list(spectrum[:,0]), list(spectrum[:,1])), maxfev = 20000)
+    para_optim, success = optimize.leastsq(errFunc, params, args=(list(spectrum[:,0]), list(spectrum[:,1])), maxfev = maxfev)
     return para_optim
 #plot figures. Gaussian fitting curve and discret gaussians.
 def plot_figures(para_optimize, axis_x, axis_y):
