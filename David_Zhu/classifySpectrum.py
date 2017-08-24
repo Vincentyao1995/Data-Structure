@@ -1,6 +1,7 @@
 import numpy as np
 import pickle
 import pandas as pd
+import math
 
 def polyfit(x, y, degree):
     '''
@@ -15,27 +16,49 @@ def polyfit(x, y, degree):
     coeffs = np.polyfit(x, y, degree)
 
     results['polynomial'] = coeffs.tolist()
-    p = np.poly1d(coeffs)
-    yhat = p(x)
-    ybar = np.sum(y)/len(y)
-    ssreg = np.sum((yhat - ybar) ** 2)
-    sstot = np.sum((y - ybar) ** 2)
-    results['determination'] = ssreg / sstot
+
+    # calculate way 1 and 2 are almost the same.
+    # calculate way 1:
+    def calway1():
+        p = np.poly1d(coeffs)
+        yhat = p(x)
+        ybar = np.sum(y)/len(y)
+        ssreg = np.sum((yhat - ybar) ** 2)
+        sstot = np.sum((y - ybar) ** 2)
+        results['determination'] = ssreg / sstot
+
+    # calculate way 2:
+    def calway2():
+        correlation = np.corrcoef(x,y)[0,1]
+        results['correlation'] = correlation
+        results['determination'] = correlation ** 2
+
+    calway1()
 
     return results
 
 def bestgroup(filename):
-    # read the file from the csv file
-    # df = pd.read_csv(filename, header=None, names=None)
+    '''
+    To choose the best group spectrum list according to the value of R-Square (Maximum)
+    :param filename: CSV file of precent-element dataframe.
+    :return: The output of the best ones of index and value.
+    '''
+    getfromfile = True
+    if getfromfile:
+        # read the file from the csv file.
+        df = pd.read_csv(filename)
+    else:
+        # the filename is the dataframe.
+        df = filename
 
-    # just get the csv file.
-    df = filename
-    # print (df)
-    elements = df.values[-1]
+    elements = df['elements']
+
     choice = 0
     bestval = 0
-    for index in np.arange(len(df.values) - 1):
-        val = polyfit(df.values[index], elements, 1)["determination"]
+
+    for index in np.arange(len(df.columns) - 2):
+        val = polyfit(df[str(index)], elements, 1)["determination"]
+        print ('val:', val)
         if(val > bestval):
             bestval = val
             choice = index
@@ -47,18 +70,27 @@ def bestgroup(filename):
     print ('Choose the best group for the RSquare:', results)
     return results
 
-def calgroupnum(filename, lineslist):
-    # 计算在每个组中属于该分类的个数，调用这些原本文件的光谱和下标信息然后进行组合，也就是需要知道原来分出来的有多少是符合条件的。
-    # 统计在某一组分属的个数以及进一步得到新的下标。
+def calgroupnum(filename, lineslist, pklfilename, savefilename, convert=False):
+    '''
+    Calculate kind of rock in different groups.
+    :param filename: CSV file of percent-element dataframe.
+    :param lineslist: The total lines in order to separate them away. [60073, 135928, 28556, 140962, 88237, 112695]
+    :param pklfilename: PKL file to get the cluster_members_lists for each group.
+    :param savefilename: Save the output to a different file.
+    :param convert: Just useful to reorder from 5,6,1,2,3,4 to 1,2,3,4,5,6
+    :return:
+    '''
     bestInfo = bestgroup(filename)
     bestIndex = bestInfo["index"]
+    # bestIndex = 3
 
-    # filename = cluster_members_lists
+    data = loadpklfile(pklfilename)
+    cluster_members_lists = data['cluster_members_lists']
     results = list()
     lens = list()
     for t in np.arange(len(lineslist)):
         s = list()
-        for p in filename[bestIndex]:
+        for p in cluster_members_lists[bestIndex]:
             if t!=0:
                 if p < lineslist[t] and p >= lineslist[t-1]:
                     temp = p - lineslist[t-1]
@@ -66,17 +98,40 @@ def calgroupnum(filename, lineslist):
             else:
                 if p < lineslist[t]:
                     s.append(p)
+        # when the value's length is not the same, it will make the process as the characters.
         results.append(s)
         lens.append(len(s))
     data = pd.DataFrame()
-    data['length'] = lens
-    data['grouplist'] = results
+    # Convert to the right order.
+    if convert:
+        reorderlens = lens[2:] + lens[:2]
+        reorderresults = results[2:] + results[:2]
+    else:
+        reorderlens = lens
+        reorderresults = results
+
+    # The grouplist length is not the same, so when read from csv it will take as characters.
+    data['length'] = reorderlens
+    data['grouplist'] = reorderresults
     print ('calculate group information done.')
+    data.to_csv('../SWIR_Output/best-group-info1.csv')
+    # np.savetxt('best-group-info.txt', data)
+
+    # Save the best-group-info.txt files so that it can be read and dealt.
+    f = open(savefilename, "w")
+    for index in np.arange(len(reorderlens)):
+        print (reorderlens[index], file = f)
+        print (reorderresults[index], file = f)
+
+    print ('save the best group information done.')
     return data
 
-
-
 def calfilelines(filenames):
+    '''
+    Read and get the pixels of each pictures.
+    :param filenames: different pictures files.
+    :return: the number of each pixels in list.
+    '''
     lineslist = list()
     skiplines = 8
     for file in filenames:
@@ -94,27 +149,40 @@ def calfilelines(filenames):
     # outputvalues: lineslist: [60073, 135928, 28556, 140962, 88237, 112695]
     return lineslist
 
-def loadpklfile():
-    with (open("clusters.pkl", "rb")) as openfile:
+def loadpklfile(filename):
+    '''
+    Get the cluster_members_list and cluster_exemplars.
+    :param filename: PKL files.
+    :return:
+    '''
+    with (open(filename, "rb")) as openfile:
         data = pd.read_pickle(openfile)
     cluster_members_lists = data['cluster_members_lists']
     cluster_exemplars = data['cluster_exemplars']
     print('lenA:', len(cluster_members_lists))
     print('lenB:', len(cluster_exemplars))
 
-
-
     return data
 
-def savenewdata(lineslist):
+def savenewdata(lineslist, readfilename, savefilename, totlineslist, convert=False):
+    '''
+    Get the percent-element table.
+    :param lineslist: The lines of the group ones for each rocks.
+    :param readfilename: Load PKL files to get the cluster spectrums.
+    :param savefilename: Save the file in the path.
+    :param totlineslist: The total lines in order to separate them away. [60073, 135928, 28556, 140962, 88237, 112695]
+    :param convert: Dicide whether it needs to convert the order.
+    :return:
+    '''
     elements = [2.8,2.4,1.6,1.2,1.9,1.4]
-    data = loadpklfile()
+    data = loadpklfile(readfilename)
     cluster_members_lists = data['cluster_members_lists']
     results = list()
     lens = list()
+    record = list()
     for t in np.arange(len(lineslist)):
         s = list()
-        temp = list()
+        numrecord = list()
         for i in np.arange(len(cluster_members_lists)):
             k = list()
             for p in cluster_members_lists[i]:
@@ -126,24 +194,54 @@ def savenewdata(lineslist):
                     if p < lineslist[t]:
                         k.append(p)
             if t != 0:
-                s.append(len(k) / (lineslist[t] - lineslist[t-1]))
+                s.append(len(k) / (totlineslist[t] - totlineslist[t-1]))
             else:
-                s.append(len(k) / lineslist[t])
-            temp.append(len(k))
-            # results = t * p; 6 * 25 dimension
+                s.append(len(k) / totlineslist[t])
+            numrecord.append(len(k))
+
+            # results = 6 * 25 dimension
             results.append(k)
-            print ('%d: temp number:' %t, temp)
+            # print ('%d: record number:' %t, numrecord)
         lens.append(s)
-    newdata = pd.DataFrame(lens)
+        record.append(numrecord)
+    numberdata = pd.DataFrame(record)
+    print ('numberdata:', numberdata)
+
+    # the before list is 5,6,1,2,3,4 and try to correct the order and output the values and test the number.
+    def countnumber():
+        # Test and compare whether it is right or wrong.
+        if convert:
+            rightordernumber = record[2:] + record[:2]
+        else:
+            rightordernumber = record
+        print ('rightordernumber:', rightordernumber)
+        data2 = pd.DataFrame(rightordernumber)
+        data2['elements'] = elements
+        data2.to_csv('../SWIR_Output/group_number_elements.csv')
+        print ('Save group_number_elements table done.')
+
+    print ('lens:', lens)
+    if convert:
+        rightorderlens = lens[2:] + lens[:2]
+    else:
+        rightorderlens = lens
+
+    newdata = pd.DataFrame(rightorderlens)
+    print ('rightorderlens:', rightorderlens)
     newdata['elements'] = elements
-    # with open('groups_percents_elements.txt','rb'):
-    newdata.to_csv('group_percents_elements.csv')
+
+    newdata.to_csv(savefilename)
     print ('Save group_percents_elements table done.')
-    print ('newdata:', newdata)
+    # print ('newdata:', newdata)
     return newdata
 
 
 def cumsum(L):
+    '''
+    To accumulate the sum of the lists.
+    :param L:
+    :return: New lists.
+    '''
     # if L's length is equal to 1
     if L[:-1] == []:
         return L
@@ -158,18 +256,24 @@ def main():
                  'Box120_SWIR_sample4.txt', 'Box120_SWIR_sample5.txt', 'Box120_SWIR_sample6.txt']
     lineslist = calfilelines(filenames)
 
-    # translineslist = lineslist[2:] + lineslist[:2]
     translineslist = lineslist[-2:] + lineslist[:-2]
     print ('translineslist:', translineslist)
 
     sumlinelist = cumsum(translineslist)
     print ('sumlinelist:', sumlinelist)
 
-    newdata = savenewdata(sumlinelist)
-    # dfgroupinfo = calgroupnum(newdata, sumlinelist)
+    # get the percent-elements data and save them.
+    newdata = savenewdata(sumlinelist, "../SWIR/clusters.pkl", "../SWIR_Output/group_percents_elements1.csv", sumlinelist, True)
+    print ('newdata:', newdata)
+
+    # # get the group information from the data directly.
+    # dfgroupinfo = calgroupnum(newdata, sumlinelist, "clusters.pkl")
     # print ('dfgroupinfo:', dfgroupinfo)
-    # filename = 'group_percents_elements.csv'
-    # dfgroupinfo = calgroupnum(filename, sumlinelist)
+
+    # get the group information from the filedata.
+    filename = '../SWIR_Output/group_percents_elements1.csv'
+    dfgroupinfo = calgroupnum(filename, sumlinelist, "../SWIR/clusters.pkl", "../SWIR_Output/best-group-info1.txt", True)
+    print ('dfgroupinfo:', dfgroupinfo)
 
 
 if __name__ == '__main__':

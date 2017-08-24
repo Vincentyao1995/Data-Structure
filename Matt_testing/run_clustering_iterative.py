@@ -20,13 +20,14 @@ import pickle
 from itertools import repeat
 import matplotlib.ticker as plticker
 import psutil
+import sys
 
 from arca.plot.subplotShape import makeNiceGridFromNElements
 from arca.plot.colorPalette import getNColorsAsHex
 from arca.vectorAngle import angle
 from mtl.file_io.make_output_dir import newDir
 from mtl.file_io.archive_source_files import zipSources
-from dvm import load_REE_SWIR
+from dvm import load_REE_spectra
 from dvm.config_ini import getConfig
 from arca.spectral_clustering.spectral_clustering_helpers import makeClustersHistogramFigure
 
@@ -36,16 +37,22 @@ __email__ = "mdirks@minesense.com; matt@skylogic.ca"
 RESULTS_DIR = 'results/clustering_iterative'
 CACHE_FPATH = 'cache/hyperspectral_NN_rocks.pkl.gz'
 configFpath = "config.ini"
-configData, _, _ = getConfig(configFpath)
 
 # ANGLE_THRESHOLD = 0.04 # had 200 clusters by 70,000 (too many)
 ANGLE_THRESHOLD = 0.1
 
 loc = plticker.MultipleLocator(base=1.0)
 
-def plot(cluster_members_lists, cluster_exemplars, rocks_df, spectrumColumns):
+def makePlots(wavelengths, cluster_members_lists, cluster_exemplars, rocks_df, spectrumColumns):
 	print('Plot members\'s spectra')
-	nClusters = len(cluster_exemplars)
+
+	nClusters= 0
+	clusterIndicesToPlot = []
+	for idx, exemplar in enumerate(cluster_exemplars):
+		if (exemplar is not None):
+			nClusters += 1
+			clusterIndicesToPlot.append(idx)
+
 	colors = getNColorsAsHex(20); nc = len(colors)
 
 	(nRows, nCols), _ = makeNiceGridFromNElements(nClusters)
@@ -57,16 +64,19 @@ def plot(cluster_members_lists, cluster_exemplars, rocks_df, spectrumColumns):
 		axs = [item for sublist in axs for item in sublist]
 
 	clusterAverages = []
-	for clusterIdx, ax, members, exemplar in zip(range(nClusters), axs, cluster_members_lists, cluster_exemplars):
+	for clusterIdx, ax in zip(clusterIndicesToPlot, axs):
+		members = cluster_members_lists[clusterIdx]
+		exemplar = cluster_exemplars[clusterIdx]
+
 		# plot members's spectra
 		spectra = rocks_df.loc[members][spectrumColumns]
 		# only some
 		spectra = spectra.sample(n=min(400, len(spectra)))
 		for pdIdx, s in spectra.iterrows():
-			ax.plot(s.tolist(), c=colors[pdIdx%nc], alpha=0.05)
+			ax.plot(wavelengths, s.tolist(), c=colors[pdIdx%nc], alpha=0.05)
 
 		# plot cluster exemplar
-		ax.plot(exemplar.tolist(), c='k', label='mean')
+		ax.plot(wavelengths, exemplar.tolist(), c='k', label='mean')
 
 		ax.set_title('clusterIdx=%d' % clusterIdx)
 
@@ -95,9 +105,17 @@ def load():
 	print('num samples selected: ', len(rocks_df))
 
 	# last column of image has NaN often, lets just chop it off
-	spectrumColumns = spectrumColumns[:-1]
+	# spectrumColumns = spectrumColumns[:-1]
 
-	return rocks_df, spectrumColumns
+	# DT recommends excluding first 4 or 5 bins, as they are often extremely high/low (maybe due to efficiency of the sensor at the extremes?)
+	# The last few probably aren't very good either -Matt.
+	spectrumColumns = spectrumColumns[5:-5]
+
+	print('loading wavelengths...')
+	wavelengths = load_REE_SWIR.load_SWIR_wavelengths(configData)
+	wavelengths = wavelengths[5:-5]
+
+	return rocks_df, spectrumColumns, wavelengths
 
 def get_angle(exemplar, spectrum):
 	return angle(spectrum, exemplar)
@@ -112,86 +130,205 @@ def check_memory():
 		else:
 			quit()
 
+def getExistingClusterData():
+	with open(input('Full path to clusters.pkl: '), 'rb') as f:
+		data = pickle.load(f)
+	cluster_members_lists = data['cluster_members_lists']
+	cluster_exemplars = data['cluster_exemplars']
+
+	return cluster_members_lists, cluster_exemplars
+
+def plotExistingClusterAssignments(rocks_df, spectrumColumns, wavelengths):
+	rocks_df['predictedCluster_iterative'] = -1 # initialize (and imply integer dtype)
+
+	print('loading clusterings...')
+	cluster_members_lists, cluster_exemplars = getExistingClusterData()
+
+	print('recording cluster assignments...')
+	for clusterIdx, members in enumerate(cluster_members_lists):
+		# record cluster assignment to these members
+		rocks_df.loc[members, 'predictedCluster_iterative'] = clusterIdx
+
+	makePlots(wavelengths, cluster_members_lists, cluster_exemplars, rocks_df, spectrumColumns)
+
+def getBestClusterMatch(spectrum, cluster_exemplars):
+	### Three different ways of computing all the angles
+	# (I found the first one to be the fastest)
+
+	def getAngleToSpectrum(exemplar):
+		if (exemplar is None):
+			return sys.float_info.max
+		else:
+			return angle(spectrum, exemplar)
+
+	if (True):
+		anglesToClusters = np.array(list(map(getAngleToSpectrum, cluster_exemplars)))
+		bestClusterIdx = anglesToClusters.argmin()
+		bestAngle = anglesToClusters[bestClusterIdx]
+	if (False):
+		bestClusterIdx = None
+		bestAngle = 999.9
+		for cIdx, exemplar in enumerate():
+			a = angle(spectrum, exemplar)
+			if (a < bestAngle):
+				bestAngle = a
+				bestClusterIdx = cIdx
+	if (False):
+		anglesToClusters = np.array(pool.starmap(get_angle, zip(cluster_exemplars, repeat(spectrum))))
+		bestClusterIdx = anglesToClusters.argmin()
+		bestAngle = anglesToClusters[bestClusterIdx]
+
+	return bestAngle, bestClusterIdx
+
+def runClustering(rocks_df, spectrumColumns):
+	cluster_members_lists = [
+		[rocks_df.index[0]],
+	]
+	cluster_exemplars = [
+		rocks_df.iloc[0][spectrumColumns].as_matrix(),
+	]
+
+	t1 = time.time()
+	for idx, (pdIdx, row) in tqdm(enumerate(rocks_df.iloc[1:].iterrows())):
+		spectrum = row[spectrumColumns].as_matrix()
+
+		bestAngle, bestClusterIdx = getBestClusterMatch(spectrum, cluster_exemplars)
+
+		### Given the angles, determine which cluster to add this spectrum to, or start a new cluster
+		if (bestAngle < ANGLE_THRESHOLD):
+			# add current spectrum to closest cluster
+			cluster_members_lists[bestClusterIdx].append(pdIdx)
+
+			# recompute cluster center (exemplar)
+			# only sometimes...
+			_members = cluster_members_lists[bestClusterIdx]
+			if (len(_members) % 100 == 2):
+				cluster_exemplars[bestClusterIdx] = rocks_df.loc[_members][spectrumColumns].mean(axis=0)
+		else:
+			# create new cluster with current spectrum
+			cluster_members_lists.append([pdIdx])
+			cluster_exemplars.append(spectrum)
+
+			print('[%d/%d] nClusters = %d' % (idx, len(rocks_df), len(cluster_exemplars)))
+
+	# finally, do one last calculation of exemplars
+	for clusterIdx, members in enumerate(cluster_members_lists):
+		cluster_exemplars[clusterIdx] = rocks_df.loc[members][spectrumColumns].mean(axis=0)
+
+	print('time %0.3f s' % (time.time() - t1))
+
+	toSave = {
+		'cluster_members_lists': cluster_members_lists,
+		'cluster_exemplars': cluster_exemplars,
+	}
+	pickle.dump(toSave, open(join(RESULTS_DIR, 'clusters.pkl'), 'wb'))
+	print('saved')
+
+def recheck(rocks_df, spectrumColumns):
+	cluster_members_lists, cluster_exemplars = getExistingClusterData()
+
+	new_cluster_members_lists = [[] for _ in cluster_members_lists]
+
+	changeCount = 0
+
+	# for each existing cluster
+	for clusterIdx, members in enumerate(cluster_members_lists):
+		print('rechecking cluster', clusterIdx)
+
+		# for each rock in this cluster, check if there's an even better cluster for it
+		for pdIdx in tqdm(members):
+			row = rocks_df.loc[pdIdx]
+			spectrum = row[spectrumColumns].as_matrix()
+
+			# get existing angle to existing cluster
+			currentAngle = angle(spectrum, cluster_exemplars[clusterIdx])
+
+			# get angles to other clusters, and minimize
+			bestAngle, bestClusterIdx = getBestClusterMatch(spectrum, cluster_exemplars)
+
+			if (bestAngle < currentAngle):
+				changeCount += 1
+				new_cluster_members_lists[bestClusterIdx].append(pdIdx)
+			else:
+				new_cluster_members_lists[clusterIdx].append(pdIdx)
+
+		print('changeCount = ', changeCount)
+
+	print('recheck done')
+	print('redoing exemplars...')
+
+	# recompute cluster center (exemplar)
+	for clusterIdx, members in enumerate(new_cluster_members_lists):
+		cluster_exemplars[clusterIdx] = rocks_df.loc[members][spectrumColumns].mean(axis=0)
+
+	print('preparing to save results...')
+	toSave = {
+		'cluster_members_lists': new_cluster_members_lists,
+		'cluster_exemplars': cluster_exemplars,
+	}
+	pickle.dump(toSave, open(join(RESULTS_DIR, 'clusters.pkl'), 'wb'))
+	print('saved')
+
+def purgeClusters(rocks_df, spectrumColumns):
+	toPurge = input('Enter list of cluster indices to be purged (CSV): ')
+	# e.g. 8,11,12
+	toPurge = [int(x) for x in toPurge.split(',')]
+
+	cluster_members_lists, cluster_exemplars = getExistingClusterData()
+	new_cluster_exemplars = cluster_exemplars.copy()
+	for i in toPurge:
+		new_cluster_exemplars[i] = None # to prevent members from attaching themselves to these purged clusters
+
+	# for each cluster to be purged
+	for clusterIdx in toPurge:
+		members = cluster_members_lists[clusterIdx]
+		print('purging cluster %d with %d members' % (clusterIdx, len(members)))
+
+		# for each rock in this cluster, find closest other cluster
+		for pdIdx in tqdm(members):
+			row = rocks_df.loc[pdIdx]
+			spectrum = row[spectrumColumns].as_matrix()
+
+			# get angles to other clusters, and minimize
+			bestAngle, bestClusterIdx = getBestClusterMatch(spectrum, new_cluster_exemplars)
+			assert bestClusterIdx not in toPurge
+			cluster_members_lists[bestClusterIdx].append(pdIdx)
+
+		# wipe out cluster (that has had all its members moved to another)
+		members.clear()
+
+	print('purge done')
+
+	# recompute cluster center (exemplar)
+	print('redoing exemplars...')
+	for clusterIdx, members in enumerate(cluster_members_lists):
+		if (new_cluster_exemplars[clusterIdx] is not None):
+			new_cluster_exemplars[clusterIdx] = rocks_df.loc[members][spectrumColumns].mean(axis=0)
+
+	print('preparing to save results...')
+	toSave = {
+		'cluster_members_lists': cluster_members_lists,
+		'cluster_exemplars': new_cluster_exemplars,
+	}
+	pickle.dump(toSave, open(join(RESULTS_DIR, 'clusters.pkl'), 'wb'))
+	print('saved')
+
 def main():
 	check_memory()
 	
 	# pool = Pool(processes=4) 
 
-	rocks_df, spectrumColumns = load()
+	rocks_df, spectrumColumns, wavelengths = load()
 
-	if (input('Plot existing?') in 'yY'):
-
-		rocks_df['predictedCluster_iterative'] = -1 # initialize (and imply integer dtype)
-
-		print('loading clusterings...')
-		with open(join(RESULTS_DIR, '2017-08-09_001_clusters.pkl'), 'rb') as f:
-			data = pickle.load(f)
-		cluster_members_lists = data['cluster_members_lists']
-		cluster_exemplars = data['cluster_exemplars']
-
-		print('recording cluster assignments...')
-		for clusterIdx, members in enumerate(cluster_members_lists):
-			# record cluster assignment to these members
-			rocks_df.loc[members, 'predictedCluster_iterative'] = clusterIdx
-
-		plot(cluster_members_lists, cluster_exemplars, rocks_df, spectrumColumns)
-
-	elif (input('Run clustering?') in 'yY'):
-		cluster_members_lists = [
-			[rocks_df.index[0]],
-		]
-		cluster_exemplars = [
-			rocks_df.iloc[0][spectrumColumns].as_matrix(),
-		]
-
-		t1 = time.time()
-		for idx, (pdIdx, row) in tqdm(enumerate(rocks_df.iloc[1:].iterrows())):
-			spectrum = row[spectrumColumns].as_matrix()
-
-			### Three different ways of computing all the angles
-			# (I found the first one to be the fastest)
-			if (True):
-				anglesToClusters = np.array(list(map(lambda exemplar: angle(spectrum, exemplar), cluster_exemplars)))
-				bestClusterIdx = anglesToClusters.argmin()
-				bestAngle = anglesToClusters[bestClusterIdx]
-			if (False):
-				bestClusterIdx = None
-				bestAngle = 999.9
-				for cIdx, exemplar in enumerate(cluster_exemplars):
-					a = angle(spectrum, exemplar)
-					if (a < bestAngle):
-						bestAngle = a
-						bestClusterIdx = cIdx
-			if (False):
-				anglesToClusters = np.array(pool.starmap(get_angle, zip(cluster_exemplars, repeat(spectrum))))
-				bestClusterIdx = anglesToClusters.argmin()
-				bestAngle = anglesToClusters[bestClusterIdx]
-
-			### Given the angles, determine which cluster to add this spectrum to, or start a new cluster
-			if (bestAngle < ANGLE_THRESHOLD):
-				# add current spectrum to closest cluster
-				cluster_members_lists[bestClusterIdx].append(pdIdx)
-
-				# recompute cluster center (exemplar)
-				# only sometimes...
-				_members = cluster_members_lists[bestClusterIdx]
-				if (len(_members) % 100 == 2):
-					cluster_exemplars[bestClusterIdx] = rocks_df.loc[_members][spectrumColumns].mean(axis=0)
-			else:
-				# create new cluster with current spectrum
-				cluster_members_lists.append([pdIdx])
-				cluster_exemplars.append(spectrum)
-
-				print('[%d/%d] nClusters = %d' % (idx, len(rocks_df), len(cluster_exemplars)))
-
-		print('time %0.3f s' % (time.time() - t1))
-
-		toSave = {
-			'cluster_members_lists': cluster_members_lists,
-			'cluster_exemplars': cluster_exemplars,
-		}
-		pickle.dump(toSave, open(join(RESULTS_DIR, 'newstuff.pkl'), 'wb'))
-		print('saved')
+	if (input('Plot existing cluster assignments?') in list('yY')):
+		plotExistingClusterAssignments(rocks_df, spectrumColumns, wavelengths)
+	elif (input('Run clustering?') in list('yY')):
+		runClustering(rocks_df, spectrumColumns)
+	elif (input('Run clustering re-check?') in list('yY')):
+		recheck(rocks_df, spectrumColumns)
+	elif (input('Run clustering purge?') in list('yY')):
+		purgeClusters(rocks_df, spectrumColumns)
 
 if __name__ == '__main__':
+	configData, _, _ = getConfig(configFpath)
 	main()
