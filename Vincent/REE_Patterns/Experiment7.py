@@ -13,8 +13,8 @@ from scipy.stats import linregress
 switch_PosCheck = 0
 switch_test = 0
 switch_smooth = 1
-switch_bandTesting = 0
-switch_multiChecking = 1
+switch_bandTesting = 1
+switch_multiChecking = 0
 
 depth_threshold = 0.0075
 method_possibility = 'general' # or general(none)
@@ -27,7 +27,7 @@ def Rsquared(listA, listB):
 
 #this function input the absorption band index of a mineral (bastnas or Sth.), return the spectrum of reference band. 
 def get_oringinal_spectrum(params_reference, band):
-    filePath = 'data/'
+    filePath = 'data/Envi_spectra_lib/'
     fileName = 'SpectraForAbsorptionFitting.hdr'
     sp_lib = envi.open(filePath + fileName)
     wavelength = sp_lib.bands.centers
@@ -311,9 +311,9 @@ def check_all(weight = 0.9, time = 0):
                     scaling = 0.0
                     similarity = 0.0
 
-                elif band == 'band2' and possibility <0.9:
-                    scaling = 0.0
-                    similarity =0.0
+                # elif band == 'band2' and possibility <0.9:
+                    # scaling = 0.0
+                    # similarity =0.0
                     
                 else:
                     #only output possibility.
@@ -367,7 +367,7 @@ def check_all(weight = 0.9, time = 0):
             file_output_picScaling.write(name + '\t')
             for band in sorted(scaling_temp.keys()):
                 file_output_picScaling.write('%f\t' % float(scaling_temp[band]/ count_pixel_num))
-            file_output_picScaling.write('\nSummation of Scaling: %f \t %f \t %f \t %f, the number of total pixels: %d\n' % (scaling_temp['band1'],scaling_temp['band2'],scaling_temp['band3'],scaling_temp['band4'], count_pixel_num))
+            file_output_picScaling.write('\nSummation of Scaling: %f \t %f \t %f \t, the number of total pixels: %d\n' % (scaling_temp['band1'],scaling_temp['band2'],scaling_temp['band3'], count_pixel_num))
             file_output_picScaling.write('Picture total scaling: %f average: %f \n \n '% (scaling_pic, float(scaling_pic/count_pixel_num) ) )
 
         #save proxy info of one picture's all bands.     

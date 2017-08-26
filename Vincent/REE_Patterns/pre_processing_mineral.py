@@ -182,17 +182,17 @@ def cal_centers_weight(centers_position, mineral_type = 'bastnas', initial_weigh
                 if center == 740:
                     centers_weight.setdefault(center, initial_weight)
                 else:
-                    centers_weight.setdefault(center, float((1.0-initial_weight)/5))
+                    centers_weight.setdefault(center, float((1.0-initial_weight)/5.0))
             if int (sum(centers_position)/ len(centers_position)) in range(770,833):
-                if center == 791 or center == 797:
-                    centers_weight.setdefault(center, initial_weight/2.0)
+                if center == 791: #or center == 797:
+                    centers_weight.setdefault(center, initial_weight)
                 else:
-                    centers_weight.setdefault(center, (1.0-initial_weight/2.0)/4)
+                    centers_weight.setdefault(center, (1.0-initial_weight)/4.0)
             if int (sum(centers_position)/ len(centers_position)) in range(854,880):
                 if center == 863 :
                     centers_weight.setdefault(center, initial_weight)
                 else:
-                    centers_weight.setdefault(center, (1.0-initial_weight)/2)
+                    centers_weight.setdefault(center, (1.0-initial_weight)/2.0)
             if int (sum(centers_position)/ len(centers_position)) in range(880,900):
                 if center == 880 :
                     centers_weight.setdefault(center, 1.0)
