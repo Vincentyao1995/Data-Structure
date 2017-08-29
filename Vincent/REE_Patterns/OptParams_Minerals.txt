@@ -1,0 +1,286 @@
+Mineral Mean: Bastnaesite_Sichuan_downC_002 [Green2] 5715 points
+band1 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.129916	-0.208472	-0.093079	-0.002407	-0.100420	
+13.571483	27.301776	26.649112	6.216641	5.695813	
+746.994005	734.370367	754.437366	816.970222	740.895113	
+0.071865
+band2 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.236187	-0.012148	-0.108001	-0.094662	-0.075718	
+327.842156	0.000093	21.944545	9.379743	79.622933	
+794.067938	796.948742	800.234007	791.370675	816.149902	
+0.096182
+band3 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.124383	-0.011752	-0.126660	
+7.553791	0.001314	29.108438	
+863.239267	867.278932	867.892747	
+0.123575
+band4 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.080468	
+6.629245	
+888.548891	
+0.362779
+
+Mineral Mean: Eudialyte_Kipawa_CMN_F92_23_ [Green1] 12305 points
+band1 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.006939	-2.856782	
+1.571621	17524.641235	
+734.391353	746.309795	
+1.578181
+band2 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.015082	-0.035919	
+13.966455	244.691322	
+799.469363	807.826318	
+0.156024
+
+Mineral Mean: Eudialyte_MSH_CMNC72_24_ [Maroon] 9414 points
+band1 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.012301	-0.004941	
+54.314258	5.131615	
+738.587072	751.397574	
+0.104840
+band2 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.027672	-0.005370	
+370.533140	4.489204	
+796.323557	809.099887	
+0.121310
+
+Mineral Mean: Eudialyte_MSH_CMN_37104 [Red3] 7141 points
+band1 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.013207	-0.005034	
+59.668964	5.638313	
+738.350136	751.346280	
+0.061806
+band2 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.038462	-0.006077	
+468.545629	4.630925	
+796.199589	808.466452	
+0.083874
+
+Mineral Mean: Eudialyte_MSH_PinchCollection_002
+band1 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.010594	-0.008554	
+18.452389	13.460665	
+739.500817	751.403205	
+0.085745
+band2 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.006438	-0.010297	
+12.075403	38.568370	
+795.118543	807.211552	
+0.084372
+
+Mineral Mean: Euxenite_CareyQuarry_CMNOC_A93_135_ [Thistle] 11748 points
+
+Mineral Mean: Monazite_ElkMountain_15_H_7_001 [Maroon] 702 points
+band1 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.060482	-0.047257	-0.142905	
+12.798814	47.542981	61.120000	
+734.093755	758.067330	744.594356	
+0.109360
+band2 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.165651	
+159.068325	
+801.795829	
+0.323313
+band3 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.046431	-0.039703	-0.066347	-0.001090	-0.021802	
+11.155459	12.493211	226.531828	0.518200	143.777545	
+861.547929	871.374135	876.223001	898.504869	905.539711	
+0.064041
+
+Mineral Mean: Monazite_ElkMountain_15_H_7_002 [Sea Green] 1023 points
+band1 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.083051	-0.179696	-0.031649	
+13.372993	57.596036	15.941252	
+734.626336	746.035862	759.693407	
+0.135702
+band2 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.199710	
+130.685236	
+801.452082	
+0.402553
+band3 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.051685	-0.045369	-0.069503	-0.001277	-0.026150	
+7.961479	11.824583	215.911276	0.496508	183.587358	
+861.723928	871.124828	874.683787	898.040719	905.809058	
+0.079793
+
+Mineral Mean: Monazite_ElkMountain_15_H_7_003 [Coral] 1283 points
+band1 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.087200	-0.056571	-0.180548	
+12.801393	34.743996	125.379018	
+733.927292	742.447033	748.803193	
+0.130235
+band2 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.242749	
+184.266112	
+801.534816	
+0.388505
+band3 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.132482	-0.070540	-0.068994	-0.070323	-0.048376	
+33.204446	4.774010	10.575064	48.544897	117.351161	
+863.216152	871.140128	876.001569	884.076814	900.827680	
+0.075740
+
+Mineral Mean: Mosandrite_Kipawa_CMN_F92_23_ [Green2] 2977 points
+band1 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.048233	-0.050591	-0.074569	
+8.849464	40.452352	82.920586	
+734.951925	740.853696	747.806349	
+0.145543
+band2 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.036464	-0.020640	-0.138436	
+41.401346	7.222168	85.962828	
+783.623976	792.181850	803.552535	
+0.146411
+band3 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.013396	-0.053795	-0.019769	
+5.839588	87.026850	423.692249	
+862.512872	875.258298	894.064662	
+0.148245
+
+Mineral Mean: Parisite_Muzo_acrossC_003 [Thistle] 265 points
+band1 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.050482	-0.073339	
+37.673741	107.515815	
+732.970357	748.178280	
+0.084023
+band2 Optimal Parameters(Height, Width, Center, Yshift):
+ 0.009295	-0.167425	
+36.429101	622.924417	
+776.499682	798.256585	
+0.126001
+band3 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.033048	-0.067871	
+9.263773	74.159141	
+862.841062	868.405790	
+0.089622
+band4 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.061012	-0.017291	
+35.293791	2.841061	
+889.453204	900.049260	
+0.093363
+
+Mineral Mean: Parisite_SB_acrossC_008 [Sea Green] 2130 points
+band1 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.080901	-0.087795	
+34.456878	64.959735	
+734.715933	748.138884	
+0.096020
+band2 Optimal Parameters(Height, Width, Center, Yshift):
+ 0.063677	-0.182329	
+60.306833	392.504839	
+779.847702	794.037984	
+0.125453
+band3 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.051661	-0.095196	
+13.617017	91.413036	
+863.105962	869.639475	
+0.115146
+band4 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.052227	-0.005349	
+69.117765	2.410448	
+888.080583	900.578126	
+0.113320
+
+Mineral Mean: Xenotime_GunterQuarry_CMN_F92_15_Large [Coral] 2826 points
+band1 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.012741	-0.008649	-0.015677	-0.015867	
+35.368510	2.541246	3.986142	10.589271	
+739.909449	747.621080	752.935266	760.106095	
+0.068725
+band2 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.040435	-0.024135	-0.006362	
+97.968512	3.601900	15.667057	
+806.687614	811.487903	829.574207	
+0.092133
+band3 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.009023	-0.047931	-0.030465	
+28.103057	43.360574	186.025107	
+896.103845	913.812698	940.958669	
+0.086213
+
+Mineral Mean: Xenotime_NovoHorizonte_M1_1131C_acrossC_001 [Yellow] 2097 points
+band1 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.018831	-0.021835	-0.028670	-0.043572	
+10.847764	3.564523	3.538838	13.019262	
+740.439665	747.485879	752.749148	760.471169	
+0.044931
+band2 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.080910	-0.025178	-0.028931	
+179.333392	7.720709	10.991428	
+807.213080	811.868768	828.709058	
+0.068047
+band3 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.021395	-0.091833	-0.050682	
+25.917326	92.053102	43.856909	
+894.139682	914.459206	934.883664	
+0.062652
+
+Mineral Mean: Xenotime_NovoHorizonte_M1_1131J_acrossC_001 [Green] 5240 points
+band1 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.021534	-0.023316	-0.031334	-0.050554	
+14.428184	3.545568	3.471343	13.178787	
+740.499120	747.556635	752.641142	760.242348	
+0.041985
+band2 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.090732	-0.036507	-0.028369	
+153.907315	8.039364	9.641749	
+806.935911	811.602214	828.494976	
+0.063764
+band3 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.023776	-0.114816	-0.056441	
+21.502371	81.348831	39.066655	
+894.481262	914.416188	934.422879	
+0.059474
+
+Mineral Zircon Green River 4391 points
+band1 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.068523	-0.005907	-0.002637	
+3258.584633	4.812044	7.221195	
+685.221954	750.742852	757.867457	
+0.159825
+band2 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.012706	-0.004057	-0.019664	
+34.591139	0.981869	1166.257309	
+804.924550	808.617861	846.804875	
+0.155021
+band3 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.001800	0.015893	-0.041863	
+0.001949	20.330873	347.109754	
+847.159355	903.244290	913.034325	
+0.146537
+
+Mineral Zircon St Peters Dome 948 points
+band1 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.031403	-0.001033	-0.029151	
+131.088648	0.228393	374.867932	
+718.640688	752.433326	738.887758	
+0.100195
+band2 Optimal Parameters(Height, Width, Center, Yshift):
+ 0.004105	0.000916	0.036255	
+35.658825	2.925344	834.334603	
+791.593194	807.540099	836.209132	
+0.097549
+band3 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.023555	-0.000845	-0.002166	
+1267.046158	4.680048	12.474688	
+831.962751	882.901218	893.077885	
+0.120159
+
+Mineral Zircon_Sept2013_MtMalosa Mean 701 points
+band1 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.058977	-0.080372	-0.038403	
+6.532088	15.701214	9.108546	
+739.338794	749.705239	759.227306	
+0.134366
+band2 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.088699	-0.055779	0.015633	
+81.361069	3.019584	4.671217	
+806.782468	808.484841	813.546889	
+0.138191
+band3 Optimal Parameters(Height, Width, Center, Yshift):
+ -0.030703	-0.045973	-0.030190	
+7.202216	3.836237	82.590632	
+870.118887	879.629168	892.974480	
+0.137748
+

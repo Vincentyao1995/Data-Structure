@@ -10,6 +10,8 @@ from mpl_toolkits.mplot3d import Axes3D
 
 switch_plotBand = 1
 
+
+
 # input the filePath and return a spectral.io.envi class including many info.
 def open_spectraData(filePath):
     sp_lib = envi.open(filePath)
@@ -17,7 +19,7 @@ def open_spectraData(filePath):
     return sp_lib
 
 # input the filePath and mineral name u want, return initial Gaussian modeling parameters.
-def get_initialParams(filePath, sp_name):
+def get_initialParams_fromTXT(filePath, sp_name):
     file = open(filePath, 'r')
     lines = [line for line in file]
     dict_mineral_initParams = {}
@@ -68,8 +70,10 @@ def get_initialParams(filePath, sp_name):
                 dict_mineral_initParams[mineralName][band].setdefault('yshift', float(yshift))
                 continue
                 
+    for name in sorted(dict_mineral_initParams.keys()):
+        if name in sp_name:
+            return dict_mineral_initParams[name]
 
-    return dict_mineral_initParams[sp_name]
 
 #input a dict that contains different minerals' optimal fitting parameters and plot them out as the DT's. 
 # also, output the optimal multiple Gaussian modeling results with the original curves
@@ -120,11 +124,11 @@ def dictWrite(filePath, dict):
         fileOut.write('\n')
     fileOut.write('')
 
-
+#this function get the optimal fitting parameters of spectra library.(DT's custom REE library.)
 if __name__ == '__main__':
     
-    filePath = 'data/'
-    fileName_lib = 'SpectraForAbsorptionFitting.hdr'
+    filePath = 'data/Envi_spectra_lib/'
+    fileName_lib = 'DT_KL_CH_BR_VNIRREE_SpecLib.hdr'
     fileName_initialParams = 'initialParams_Minerals.txt'
     sp_lib = open_spectraData(filePath + fileName_lib)
     
@@ -136,10 +140,10 @@ if __name__ == '__main__':
         # get the spectra reflectance and spectra name from enviLib
         reflectance = sp_lib.spectra[i]
         spectrum = np.array([wavelength, reflectance]).T
-        sp_name = sp_lib.names[i].split('_')[0]
+        sp_name = sp_lib.names[i]
         
         # get initial parameters of this mineral
-        initial_parameters = get_initialParams(filePath + fileName_initialParams, sp_name)
+        initial_parameters = get_initialParams_fromTXT(filePath + fileName_initialParams, sp_name)
         
         # change the initial width, height
         for band in sorted(initial_parameters.keys()):
@@ -166,6 +170,9 @@ if __name__ == '__main__':
             dict_minerals_OptParams[sp_name].setdefault(band, optimal_parameters)
 
             if switch_plotBand:
+                fig = plt.figure()
+                strTitle = sp_name + '_' + band
+                fig.suptitle(strTitle,fontsize = 12)
                 plt.plot(spectrum_band[:,0], spectrum_band[:,1])
                 OptReflectance = MGM.multi_MGM(spectrum_band[:,0],optimal_parameters)
                 plt.plot(spectrum_band[:,0], OptReflectance)
@@ -185,10 +192,10 @@ if __name__ == '__main__':
 
                     listSingleRef = []
 
-
-
-                plt.show()
-    
+                #plt.show()
+                strTitle = strTitle.replace(':','')
+                fig.savefig('output/MultipleMineralFitting/DT custom lib/' + strTitle+ '.jpg')
+                plt.close()
     fileName_OptParams = 'OptParams_Minerals.txt'
 
     # write the optimal parameters result into .txt file

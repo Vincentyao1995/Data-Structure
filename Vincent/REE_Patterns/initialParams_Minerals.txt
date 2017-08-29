@@ -13,7 +13,7 @@ band2 range: 770.429993 - 832.700012
 absorption numbers: 6
 height: 0.01	0.01	0.01	0.01	0.01	0.01
 width: 5.0	5.0	5.0	5.0	5.0	5.0
-center: 783	791	797	803	810	820
+center: 781	791	797	803	812	820
 yshift:	0
 
 band3 range: 854.119995 - 879.590027
@@ -103,3 +103,100 @@ center:	862	871	886	896	906
 yshift:	0
 
 
+Mineral Eudialyte: absorption number-2
+
+band1 range: 729 - 760
+absorption numbers: 2
+height:	0.01	0.01
+width:	5.0	5.0
+center:	739	750
+yshift:	0
+
+band2 range: 785 - 820
+absorption numbers: 2
+height:	0.01	0.01
+width:	5.0	5.0
+center:	794	808
+yshift:	0
+
+
+Mineral Euxenite: absorption number-0
+
+
+Mineral Parisite: absorption number-4
+
+band1 range: 709 - 772
+absorption numbers: 2
+height:	0.01	0.01
+width:	5.0	5.0
+center:	740	750
+yshift:	0
+
+band2 range: 772 - 836
+absorption numbers: 2
+height:	0.01	0.01
+width:	5.0	5.0
+center:	785	799
+yshift:	0
+
+band3 range: 843 - 882
+absorption numbers: 2
+height:	0.01	0.01
+width:	5.0	5.0
+center:	864	870
+yshift:	0
+
+band4 range: 882 - 906
+absorption numbers: 2
+height:	0.01	0.01
+width:	5.0	5.0
+center:	890	899
+yshift:	0
+
+
+Mineral Xenotime: absorption number-3
+
+band1 range: 733 - 773
+absorption numbers: 4
+height:	0.01	0.01	0.01	0.01
+width:	5.0	5.0	5.0	5.0
+center:	739	747	753	760
+yshift:	0
+
+band2 range: 785 - 840
+absorption numbers: 3
+height:	0.01	0.01	0.01
+width:	5.0	5.0	5.0
+center:	802	810	828
+yshift:	0
+
+band3 range: 880 - 943
+absorption numbers: 2
+height:	0.01	0.01	0.01
+width:	5.0	5.0	5.0
+center:	897	914	932
+yshift:	0
+
+
+Mineral Zircon: absorption number-3
+
+band1 range: 728 - 775
+absorption numbers: 3
+height:	0.01	0.01	0.01
+width:	5.0	5.0	5.0
+center:	739	750	757
+yshift:	0
+
+band2 range: 789 - 830
+absorption numbers: 3
+height:	0.01	0.01	0.01
+width:	5.0	5.0	5.0
+center:	802	808	816
+yshift:	0
+
+band3 range: 860 - 904
+absorption numbers: 3
+height:	0.01	0.01	0.01
+width:	5.0	5.0	5.0
+center:	870	880	892
+yshift:	0
