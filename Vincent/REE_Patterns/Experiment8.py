@@ -7,6 +7,7 @@ import numpy as np
 import pre_processing_mineral as ppm
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+import pandas as pd
 
 switch_plotBand = 1
 
@@ -75,26 +76,6 @@ def get_initialParams_fromTXT(filePath, sp_name):
             return dict_mineral_initParams[name]
 
 
-#input a dict that contains different minerals' optimal fitting parameters and plot them out as the DT's. 
-# also, output the optimal multiple Gaussian modeling results with the original curves
-def plotOut(dict_minerlas_OptParams, sp_lib):
-    #list saves height weight and center, attention, time to plotout DT's result. But only got 6.
-    listHWC = []
-    listHWC.append(list(optimal_parameters[0:numTemp]))
-    listHWC.append(list(optimal_parameters[numTemp:numTemp*2]))
-    listHWC.append(list(optimal_parameters[numTemp*2:-1]))
-    
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    ax.scatter(listHWC[0], listHWC[1], listHWC[2])
-    ax.set_xlabel('Height')
-    ax.set_ylabel('Width')
-    ax.set_zlabel('Center')
-    return 0
-    
-
-
-
 def dictWrite(filePath, dict):
     fileOut = open(filePath, 'w')
     
@@ -123,6 +104,55 @@ def dictWrite(filePath, dict):
             
         fileOut.write('\n')
     fileOut.write('')
+
+#this function input a dict including optimal parameters from multiple minerals. return the PCA result.
+def cal_PCA(dict_minerals_OptParams, dimension = 2):
+    #import the basic lib
+    from sklearn.decomposition import PCA
+    pca = PCA(n_components = dimension)
+
+    dict_minerals_PCA = {}
+
+    #tranverse all minerals and PCA them, then plot them out.
+    for mineral in sorted(dict_minerals_OptParams.keys()):
+
+        XList = dict_minerals_OptParams[mineral]
+        X_norm = (XList - XList.min()) / (XList.max() - XList.min())
+        transformedList = pd.DataFrame(pca.fit_transform(X_norm))
+        
+        #save the PCA results into a list.
+        dict_minerals_PCA.setdefault(mineral, transformedList)
+
+        plt.scatter(transformedList[0], transformedList[1], label = mineral)
+
+    plt.legend()
+    plt.show()
+
+    return dict_minerals_PCA
+
+#this function use LDA(linear discriminant Analysis). Similar to PCA
+def cal_LDA(dict_minerals_OptParams, dimension = 2):
+    from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA 
+    lda = LDA(n_components = dimension)
+
+    dict_minerals_LDA = {}
+
+    #tranverse all minerals and LDA them, then plot out results.
+    for mineral in sorted(dict_minerals_OptParams.keys()):
+
+        X = dict_minerals_OptParams[mineral]
+        X_norm  = (X - X.min()) / (X.max() - X.min())
+        transformedList = pd.DataFrame(lda.fit_transform(X_norm, y ))
+        
+        dict_minerals_LDA.setdefault(mineral, transformedList)
+
+        plt.scatter(transformedList[0], transformedList[1], label = mineral)
+
+    plt.legend()
+    plt.show()
+
+    return dict_minerals_LDA
+
 
 #this function get the optimal fitting parameters of spectra library.(DT's custom REE library.)
 if __name__ == '__main__':
@@ -196,13 +226,16 @@ if __name__ == '__main__':
                 strTitle = strTitle.replace(':','')
                 fig.savefig('output/MultipleMineralFitting/DT custom lib/' + strTitle+ '.jpg')
                 plt.close()
+
     fileName_OptParams = 'OptParams_Minerals.txt'
 
     # write the optimal parameters result into .txt file
     dictWrite(filePath + fileName_OptParams, dict_minerals_OptParams)
 
-    # plot out the optimal parameters in grid
-    plotOut(dict_minerals_OptParams, sp_lib)
+    #PCA and other lower dimension methods.
+    dict_minerals_PCA = cal_PCA(dict_minerals_OptParams)
+    #time to debug PCA and plot results out. 
+    
 
 
     
