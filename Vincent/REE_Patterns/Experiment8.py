@@ -9,9 +9,11 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import pandas as pd
 
-switch_plotBand = 1
+switch_plotBand = 0
 
-
+class datasetsPCA():
+    def __init__(self):
+        pass
 
 # input the filePath and return a spectral.io.envi class including many info.
 def open_spectraData(filePath):
@@ -105,25 +107,23 @@ def dictWrite(filePath, dict):
         fileOut.write('\n')
     fileOut.write('')
 
-#this function input a dict including optimal parameters from multiple minerals. return the PCA result.
-def cal_PCA(dict_minerals_OptParams, dimension = 2):
+#this function input a dict including parameter lists from multiple minerals. return the PCA result.
+def cal_PCA(data, dimension = 2):
     #import the basic lib
     from sklearn.decomposition import PCA
     pca = PCA(n_components = dimension)
 
-    dict_minerals_PCA = {}
+    Y = data.label
 
-    #tranverse all minerals and PCA them, then plot them out.
-    for mineral in sorted(dict_minerals_OptParams.keys()):
+    for i in range(3):
+        arrayData = np.array(data.data[i])
+        transformedData = pca.fit(arrayData).transform(arrayData)
 
-        XList = dict_minerals_OptParams[mineral]
-        X_norm = (XList - XList.min()) / (XList.max() - XList.min())
-        transformedList = pd.DataFrame(pca.fit_transform(X_norm))
-        
-        #save the PCA results into a list.
-        dict_minerals_PCA.setdefault(mineral, transformedList)
+    colors = ['bastnaesite', 'turquoise', 'darkorange']
 
-        plt.scatter(transformedList[0], transformedList[1], label = mineral)
+    for color, i, target_name in zip(colors, [0, 1, 2], target_names):
+        plt.scatter(transformedData[y == i, 0], transformedData[y == i, 1], color=color, alpha=.8, lw=2,
+                label=target_name)
 
     plt.legend()
     plt.show()
@@ -136,13 +136,30 @@ def cal_LDA(dict_minerals_OptParams, dimension = 2):
     lda = LDA(n_components = dimension)
 
     dict_minerals_LDA = {}
+    X = []
 
     #tranverse all minerals and LDA them, then plot out results.
     for mineral in sorted(dict_minerals_OptParams.keys()):
 
-        X = dict_minerals_OptParams[mineral]
-        X_norm  = (X - X.min()) / (X.max() - X.min())
-        transformedList = pd.DataFrame(lda.fit_transform(X_norm, y ))
+        BandList = dict_minerals_OptParams[mineral]
+
+        #merge list parameters in dict[mineral][band] into a larger one 
+        XList = []
+        for band in sorted(BandList.keys()):
+            OptParams_temp = BandList[band]
+            numTemp = int(len(OptParams_temp)/3)
+            XList_temp = []
+            
+            #norm the height, width, centers separately. 780,790,798 - [0.x 0.y 0.z]
+            for i in range(numTemp):
+                listTemp = OptParams_temp[i * numTemp : (i+1)* numTemp]
+                listTemp = np.array(listTemp)
+                listNorm = (listTemp - listTemp.min()) / (listTemp.max() - listTemp.min())
+                XList_temp.extend(listNorm)
+
+            XList.extend(XList_temp)
+
+        transformedList = pd.DataFrame(lda.fit_transform(XList))
         
         dict_minerals_LDA.setdefault(mineral, transformedList)
 
@@ -153,7 +170,43 @@ def cal_LDA(dict_minerals_OptParams, dimension = 2):
 
     return dict_minerals_LDA
 
+#this funtion receive a dict that contains all minerals' optimal parameters in all bands. return a dict contains all minerals contains width, height, centers
+def transformDict(dict_minerals_OptParams):
+    dict = {}
 
+    for mineral in sorted(dict_minerals_OptParams.keys()):
+        dict.setdefault(mineral,{})
+        dict[mineral].setdefault('width', [])
+        dict[mineral].setdefault('height', [])
+        dict[mineral].setdefault('center', [])
+        dict[mineral].setdefault('yshift',[] )
+
+        # transform core code
+        dictMineral = dict_minerals_OptParams[mineral]
+
+        for band in sorted(dictMineral.keys()):
+            listParams = dictMineral[band]
+            numTemp = int(len(listParams)/3)
+            for i in range(3):
+                if i == 0:
+                    dict[mineral]['height'].extend( listParams[i*numTemp : (i+1)*numTemp])
+                elif i ==1:
+                    dict[mineral]['width'].extend( listParams[i*numTemp : (i+1)*numTemp])
+                elif i ==2:
+                    dict[mineral]['center'].extend( listParams[i*numTemp : (i+1)*numTemp])
+            dict[mineral]['yshift'].extend([listParams[-1]])
+
+    data = datasetsPCA()
+    data.data = [[],[],[]]
+    
+    data.label = sorted(dict.keys())
+
+    for mineral in sorted(dict.keys()):
+        data.data[0].append(dict[mineral]['height'])
+        data.data[1].append(dict[mineral]['width'])
+        data.data[2].append(dict[mineral]['center'])
+
+    return data
 #this function get the optimal fitting parameters of spectra library.(DT's custom REE library.)
 if __name__ == '__main__':
     
@@ -232,10 +285,12 @@ if __name__ == '__main__':
     # write the optimal parameters result into .txt file
     dictWrite(filePath + fileName_OptParams, dict_minerals_OptParams)
 
+    dict_transformed = transformDict(dict_minerals_OptParams)
+
     #PCA and other lower dimension methods.
-    dict_minerals_PCA = cal_PCA(dict_minerals_OptParams)
-    #time to debug PCA and plot results out. 
-    
+    #PCA give up. because every mineral has different number of parameters. Use the Optimal parameters directly.
+    dict_minerals_PCA = cal_PCA(dict_transformed)
+        
 
 
     
