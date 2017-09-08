@@ -10,11 +10,13 @@ from scipy import signal
 from scipy.stats import linregress
 
 
-switch_PosCheck = 0
+switch_PosCheck = 1
 switch_test = 0
 switch_smooth = 1
 switch_bandTesting = 1
 switch_multiChecking = 0
+switch_SimCheck = 0
+
 
 depth_threshold = 0.0075
 method_possibility = 'general' # or general(none)
@@ -238,7 +240,7 @@ def check_all(weight = 0.9, time = 0):
     filePath_image_temp = 'data/VNIR/rocks/VNIR_sample1_18points.hdr'
     wavelength_pixel = ta.load_image(filePath = filePath_image_temp).bands.centers
     name_images = [name for name in os.listdir(filePath) if name.endswith('.txt')]
-    params_reference = load_reference('data/VNIR/rocks/' + 'bastnas_gau_params.txt')#attention, different mineral, rewrite this function? And this become a pre-txt file. Read info from txt.
+    params_reference = load_reference('data/VNIR/rocks/' + 'bastnas_gau_params.txt')
     params_reference.pop('band4')
 
     filePath_output = 'output/VNIR_scaling/'
